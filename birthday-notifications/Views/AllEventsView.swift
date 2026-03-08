@@ -9,6 +9,7 @@ struct AllEventsView: View {
     @State private var searchText = ""
     @State private var selectedGroupFilter: PersistentIdentifier?
     @State private var addItemType: AddItemType?
+    @State private var toastMessage: String?
 
     private var filteredPeople: [Person] {
         var result = people
@@ -166,10 +167,17 @@ struct AllEventsView: View {
             .sheet(item: $addItemType) { type in
                 switch type {
                 case .person:
-                    AddPersonView()
+                    AddPersonView(onSaved: {
+                        toastMessage = "Person added"
+                    })
                 case .event:
-                    AddEventView()
+                    AddEventView(onSaved: {
+                        toastMessage = "Event added"
+                    })
                 }
+            }
+            .overlay(alignment: .bottom) {
+                ToastView(message: $toastMessage)
             }
         }
     }

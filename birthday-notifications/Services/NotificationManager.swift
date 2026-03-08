@@ -17,8 +17,12 @@ final class NotificationManager {
         center.removeAllPendingNotificationRequests()
 
         for person in people {
-            scheduleDayOf(person: person, center: center)
-            scheduleOneWeekBefore(person: person, center: center)
+            if person.notifyOnDay {
+                scheduleDayOf(person: person, center: center)
+            }
+            if person.notifyOneWeekBefore {
+                scheduleOneWeekBefore(person: person, center: center)
+            }
         }
 
         for event in events {

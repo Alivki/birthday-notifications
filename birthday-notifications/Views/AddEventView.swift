@@ -5,6 +5,8 @@ struct AddEventView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    var onSaved: (() -> Void)?
+
     @State private var name = ""
     @State private var notes = ""
     @State private var selectedMonth = Calendar.current.component(.month, from: .now)
@@ -243,6 +245,7 @@ struct AddEventView: View {
             colorHex: selectedColor.toHex()
         )
         modelContext.insert(event)
+        onSaved?()
         dismiss()
     }
 }

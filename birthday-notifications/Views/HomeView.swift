@@ -12,6 +12,7 @@ struct HomeView: View {
     @Query private var events: [Event]
     @State private var addItemType: AddItemType?
     @State private var showingAddSheet = false
+    @State private var toastMessage: String?
 
     private var currentMonthName: String {
         let formatter = DateFormatter()
@@ -149,10 +150,17 @@ struct HomeView: View {
             .sheet(item: $addItemType) { type in
                 switch type {
                 case .person:
-                    AddPersonView()
+                    AddPersonView(onSaved: {
+                        toastMessage = "Person added"
+                    })
                 case .event:
-                    AddEventView()
+                    AddEventView(onSaved: {
+                        toastMessage = "Event added"
+                    })
                 }
+            }
+            .overlay(alignment: .bottom) {
+                ToastView(message: $toastMessage)
             }
         }
     }

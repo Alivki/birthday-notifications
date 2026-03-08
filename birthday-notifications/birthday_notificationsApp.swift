@@ -39,12 +39,23 @@ struct RootView: View {
     @Query private var people: [Person]
     @Query private var events: [Event]
 
+    private var notificationHash: Int {
+        var h = people.count ^ events.count
+        for p in people {
+            h ^= p.notifyOnDay.hashValue &+ p.notifyOneWeekBefore.hashValue
+        }
+        return h
+    }
+
     var body: some View {
         ContentView()
             .onChange(of: people.count) {
                 NotificationManager.shared.scheduleNotifications(for: people, events: events)
             }
             .onChange(of: events.count) {
+                NotificationManager.shared.scheduleNotifications(for: people, events: events)
+            }
+            .onChange(of: notificationHash) {
                 NotificationManager.shared.scheduleNotifications(for: people, events: events)
             }
             .onAppear {

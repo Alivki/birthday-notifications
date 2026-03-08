@@ -25,6 +25,11 @@ struct ContentView: View {
                 .tabItem {
                     Label("Groups", systemImage: "folder")
                 }
+
+            SettingsView()
+                .tabItem {
+                    Label("Settings", systemImage: "gearshape")
+                }
         }
     }
 }

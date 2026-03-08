@@ -7,6 +7,8 @@ struct AddPersonView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \PersonGroup.name) private var allGroups: [PersonGroup]
 
+    var onSaved: (() -> Void)?
+
     @State private var firstName = ""
     @State private var lastName = ""
     @State private var notes = ""
@@ -16,6 +18,8 @@ struct AddPersonView: View {
     @State private var selectedDay = Calendar.current.component(.day, from: .now)
 
     @State private var selectedGroups: Set<PersistentIdentifier> = []
+    @State private var notifyOnDay = true
+    @State private var notifyOneWeekBefore = true
 
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var rawUIImage: UIImage?
@@ -42,6 +46,7 @@ struct AddPersonView: View {
                 nameSection
                 groupSection
                 birthdaySection
+                notificationsSection
                 notesSection
             }
             .navigationTitle("Add Person")
@@ -254,6 +259,14 @@ struct AddPersonView: View {
     }
 
     @ViewBuilder
+    private var notificationsSection: some View {
+        Section("Notifications") {
+            Toggle("On the day", isOn: $notifyOnDay)
+            Toggle("One week before", isOn: $notifyOneWeekBefore)
+        }
+    }
+
+    @ViewBuilder
     private var notesSection: some View {
         Section("Notes") {
             TextField("Optional", text: $notes, axis: .vertical)
@@ -332,12 +345,15 @@ struct AddPersonView: View {
             birthdayDay: selectedDay,
             birthdayMonth: selectedMonth,
             birthdayYear: selectedYear ?? Calendar.current.component(.year, from: .now),
-            photoData: croppedImage?.jpegData(compressionQuality: 0.9)
+            photoData: croppedImage?.jpegData(compressionQuality: 0.9),
+            notifyOnDay: notifyOnDay,
+            notifyOneWeekBefore: notifyOneWeekBefore
         )
         modelContext.insert(person)
         for group in allGroups where selectedGroups.contains(group.id) {
             group.members.append(person)
         }
+        onSaved?()
         dismiss()
     }
 }

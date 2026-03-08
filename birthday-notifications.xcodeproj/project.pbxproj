@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 32A30A4B2F54E1020077BEA3 /* Build configuration list for PBXProject "final-birthday-notifications" */;
+			buildConfigurationList = 32A30A4B2F54E1020077BEA3 /* Build configuration list for PBXProject "birthday-notifications" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -313,7 +313,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		32A30A4B2F54E1020077BEA3 /* Build configuration list for PBXProject "final-birthday-notifications" */ = {
+		32A30A4B2F54E1020077BEA3 /* Build configuration list for PBXProject "birthday-notifications" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				32A30A592F54E1020077BEA3 /* Debug */,

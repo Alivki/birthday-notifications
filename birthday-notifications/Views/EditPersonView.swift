@@ -17,6 +17,9 @@ struct EditPersonView: View {
     @State private var selectedYear: Int?
     @State private var selectedGroups: Set<PersistentIdentifier>
 
+    @State private var notifyOnDay: Bool
+    @State private var notifyOneWeekBefore: Bool
+
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var rawUIImage: UIImage?
     @State private var croppedImage: UIImage?
@@ -34,6 +37,8 @@ struct EditPersonView: View {
         _selectedMonth = State(initialValue: person.birthdayMonth)
         _selectedYear = State(initialValue: person.birthdayYear)
         _selectedGroups = State(initialValue: Set(person.groups.map(\.persistentModelID)))
+        _notifyOnDay = State(initialValue: person.notifyOnDay)
+        _notifyOneWeekBefore = State(initialValue: person.notifyOneWeekBefore)
     }
 
     var body: some View {
@@ -132,6 +137,12 @@ struct EditPersonView: View {
                     .animation(.spring(duration: 0.4, bounce: 0.1), value: showDatePicker)
                 }
 
+                // Notifications
+                Section("Notifications") {
+                    Toggle("On the day", isOn: $notifyOnDay)
+                    Toggle("One week before", isOn: $notifyOneWeekBefore)
+                }
+
                 // Notes
                 Section("Notes") {
                     TextField("Notes", text: $notes, axis: .vertical)
@@ -209,6 +220,8 @@ struct EditPersonView: View {
         person.birthdayDay = selectedDay
         person.birthdayMonth = selectedMonth
         person.birthdayYear = selectedYear ?? Calendar.current.component(.year, from: .now)
+        person.notifyOnDay = notifyOnDay
+        person.notifyOneWeekBefore = notifyOneWeekBefore
 
         if let croppedImage {
             person.photoData = croppedImage.jpegData(compressionQuality: 0.9)

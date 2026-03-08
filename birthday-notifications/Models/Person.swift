@@ -19,6 +19,9 @@ final class Person {
     @Attribute(.externalStorage)
     var photoData: Data?
 
+    var notifyOnDay: Bool
+    var notifyOneWeekBefore: Bool
+
     @Relationship(deleteRule: .cascade, inverse: \GiftIdea.person)
     var giftIdeas: [GiftIdea]
 
@@ -77,6 +80,8 @@ final class Person {
         birthdayMonth: Int = 1,
         birthdayYear: Int = 2000,
         photoData: Data? = nil,
+        notifyOnDay: Bool = true,
+        notifyOneWeekBefore: Bool = true,
         giftIdeas: [GiftIdea] = [],
         groups: [PersonGroup] = []
     ) {
@@ -87,6 +92,8 @@ final class Person {
         self.birthdayMonth = birthdayMonth
         self.birthdayYear = birthdayYear
         self.photoData = photoData
+        self.notifyOnDay = notifyOnDay
+        self.notifyOneWeekBefore = notifyOneWeekBefore
         self.giftIdeas = giftIdeas
         self.groups = groups
         self.createdAt = .now
