@@ -76,7 +76,7 @@ struct AllEventsView: View {
                             HStack(spacing: 8) {
                                 FilterChip(
                                     label: "All",
-                                    color: .blue,
+                                    color: Theme.brand,
                                     isSelected: selectedGroupFilter == nil
                                 ) {
                                     selectedGroupFilter = nil
@@ -96,18 +96,42 @@ struct AllEventsView: View {
                                     }
                                 }
                             }
+                            .padding(.horizontal, 16)
                         }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 4, trailing: 0))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     }
-                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 }
 
                 // Month sections
                 ForEach(monthSections, id: \.month) { section in
-                    Section(section.name) {
+                    Section {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(section.name)
+                                .font(.system(.title3, design: .rounded).weight(.bold))
+                                .foregroundStyle(.primary)
+                            Text("\(section.people.count + section.events.count)")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Theme.textSecondary)
+                                .monospacedDigit()
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 18)
+                        .padding(.bottom, 6)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    }
+                    Section {
                         ForEach(section.events) { event in
-                            NavigationLink(value: event.persistentModelID) {
+                            CardLink(value: event.persistentModelID) {
                                 EventRow(event: event)
                             }
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                         .onDelete { offsets in
                             for index in offsets {
@@ -116,9 +140,12 @@ struct AllEventsView: View {
                         }
 
                         ForEach(section.people) { person in
-                            NavigationLink(value: person.persistentModelID) {
+                            CardLink(value: person.persistentModelID) {
                                 PersonRow(person: person)
                             }
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                         .onDelete { offsets in
                             for index in offsets {
@@ -128,7 +155,9 @@ struct AllEventsView: View {
                     }
                 }
             }
-            .listStyle(.insetGrouped)
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Theme.surface)
             .navigationTitle("All")
             .searchable(text: $searchText, prompt: "Search names and events")
             .navigationDestination(for: PersistentIdentifier.self) { id in

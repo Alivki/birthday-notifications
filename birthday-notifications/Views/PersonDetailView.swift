@@ -17,56 +17,123 @@ struct PersonDetailView: View {
         if let person {
             let daysUntil = person.daysUntilBirthday
             List {
-                // Header
+                // Header — clean profile-card style, no tinted panel
                 Section {
-                    DetailHeader(
-                        title: person.fullName,
-                        subtitle: person.formattedBirthday,
-                        icon: { PersonPhoto(person: person, size: 104) },
-                        chips: {
-                            if !person.groups.isEmpty {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 6) {
-                                        ForEach(person.groups) { group in
-                                            GroupChip(group: group)
-                                        }
-                                    }
-                                    .padding(.horizontal, 1)
+                    VStack(spacing: 16) {
+                        PersonPhoto(person: person, size: 112)
+
+                        VStack(spacing: 4) {
+                            Text(person.fullName)
+                                .font(.system(.title, design: .rounded).weight(.bold))
+                                .multilineTextAlignment(.center)
+
+                            Text(person.formattedBirthday)
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+
+                        // Big countdown number
+                        VStack(spacing: 2) {
+                            if daysUntil == 0 {
+                                Text("Today")
+                                    .font(.system(size: 40, weight: .heavy, design: .rounded))
+                                    .foregroundStyle(Theme.celebration)
+                            } else {
+                                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                                    Text("\(daysUntil)")
+                                        .font(.system(size: 40, weight: .heavy, design: .rounded))
+                                        .monospacedDigit()
+                                        .foregroundStyle(daysUntil <= 7 ? Theme.celebration : Theme.brandDeep)
+                                    Text(daysUntil == 1 ? "day" : "days")
+                                        .font(.system(.title3, design: .rounded).weight(.semibold))
+                                        .foregroundStyle(Theme.textSecondary)
                                 }
                             }
-                        },
-                        pills: [
-                            DetailPill(title: daysUntilLabel(daysUntil), accent: .pink, filled: true),
-                            DetailPill(title: "Turns \(person.turnsAge)", accent: .pink, filled: false),
-                        ]
-                    )
+                            Text("until they turn \(person.turnsAge)")
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+                        .padding(.top, 4)
+
+                        if !person.groups.isEmpty {
+                            HStack(spacing: 6) {
+                                ForEach(person.groups) { group in
+                                    GroupChip(group: group)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
-                .listRowBackground(Color.clear)
 
                 // Notes
                 if !person.notes.isEmpty {
-                    Section("Notes") {
+                    sectionTitle("Notes")
+                    Section {
                         Text(person.notes)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary)
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
+                                    .fill(Theme.card)
+                            )
+                            .cardShadow()
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                     }
                 }
 
                 // Gift Ideas
+                sectionTitle("Gift ideas")
                 Section {
                     if person.giftIdeas.isEmpty {
                         Button {
                             showAddGift = true
                         } label: {
-                            Label("Add a gift idea", systemImage: "plus")
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundStyle(Theme.brand)
+                                Text("Add a gift idea")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                            }
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
+                                    .fill(Theme.card)
+                            )
+                            .cardShadow()
                         }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     } else {
                         ForEach(person.giftIdeas.sorted(by: { $0.createdAt > $1.createdAt })) { gift in
                             Button {
                                 selectedGift = gift
                             } label: {
                                 GiftIdeaRow(gift: gift)
+                                    .padding(14)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
+                                            .fill(Theme.card)
+                                    )
+                                    .cardShadow()
                             }
                             .buttonStyle(.plain)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                         .onDelete { offsets in
                             deleteGifts(offsets, person: person)
@@ -75,13 +142,31 @@ struct PersonDetailView: View {
                         Button {
                             showAddGift = true
                         } label: {
-                            Label("Add another", systemImage: "plus")
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundStyle(Theme.brand)
+                                Text("Add another")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                            }
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
+                                    .fill(Theme.card)
+                            )
+                            .cardShadow()
                         }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     }
-                } header: {
-                    Text("Gift ideas")
                 }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Theme.surface)
             .navigationTitle(person.firstName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -102,6 +187,21 @@ struct PersonDetailView: View {
             }
         } else {
             ContentUnavailableView("Person Not Found", systemImage: "person.slash")
+        }
+    }
+
+    @ViewBuilder
+    private func sectionTitle(_ title: String) -> some View {
+        Section {
+            Text(title)
+                .font(.system(.title3, design: .rounded).weight(.bold))
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         }
     }
 
@@ -130,11 +230,11 @@ struct GiftIdeaRow: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(.blue.opacity(0.1))
+                    .fill(Theme.brand.opacity(0.10))
                     .frame(width: 44, height: 44)
                     .overlay(
                         Image(systemName: "gift")
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(Theme.brand)
                     )
             }
 
@@ -198,12 +298,12 @@ struct GiftIdeaDetailView: View {
                             .padding(.horizontal)
                     } else {
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(.blue.opacity(0.08))
+                            .fill(Theme.brand.opacity(0.08))
                             .frame(height: 200)
                             .overlay(
                                 Image(systemName: "gift.fill")
                                     .font(.system(size: 48))
-                                    .foregroundStyle(.blue.opacity(0.3))
+                                    .foregroundStyle(Theme.brand.opacity(0.3))
                             )
                             .padding(.horizontal)
                     }
@@ -236,10 +336,10 @@ struct GiftIdeaDetailView: View {
                         if let urlString = gift.url, !urlString.isEmpty {
                             HStack {
                                 Image(systemName: "link")
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(Theme.brand)
                                 Text(urlString)
                                     .font(.subheadline)
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(Theme.brand)
                                     .lineLimit(1)
                             }
                         }

@@ -12,6 +12,7 @@ import SwiftData
 final class Person {
     var firstName: String
     var lastName: String
+    var nickname: String = ""
     var notes: String
     var birthdayDay: Int
     var birthdayMonth: Int
@@ -32,6 +33,13 @@ final class Person {
 
     var fullName: String {
         [firstName, lastName].filter { !$0.isEmpty }.joined(separator: " ")
+    }
+
+    /// Nickname when set, otherwise the full name. Used in row/list contexts
+    /// (Home, All) so the user sees what they actually call this person.
+    var displayName: String {
+        let trimmed = nickname.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? fullName : trimmed
     }
 
     var nextBirthday: Date {
@@ -83,6 +91,7 @@ final class Person {
     init(
         firstName: String,
         lastName: String = "",
+        nickname: String = "",
         notes: String = "",
         birthdayDay: Int = 1,
         birthdayMonth: Int = 1,
@@ -95,6 +104,7 @@ final class Person {
     ) {
         self.firstName = firstName
         self.lastName = lastName
+        self.nickname = nickname
         self.notes = notes
         self.birthdayDay = birthdayDay
         self.birthdayMonth = birthdayMonth

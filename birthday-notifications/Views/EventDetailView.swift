@@ -11,47 +11,97 @@ struct EventDetailView: View {
         try? modelContext.model(for: eventID) as? Event
     }
 
-    private func pills(for event: Event, daysUntil: Int) -> [DetailPill] {
-        var result: [DetailPill] = [
-            DetailPill(title: daysUntilLabel(daysUntil), accent: event.color, filled: true)
-        ]
-        if let years = event.turnsYears {
-            result.append(DetailPill(title: years == 1 ? "1 year" : "\(years) years", accent: event.color, filled: false))
-        }
-        return result
-    }
 
     var body: some View {
         if let event {
             let daysUntil = event.daysUntilEvent
             List {
                 Section {
-                    DetailHeader(
-                        title: event.name,
-                        subtitle: event.formattedDate,
-                        icon: {
-                            ZStack {
-                                Circle()
-                                    .fill(event.color.opacity(0.15))
-                                    .frame(width: 104, height: 104)
-                                Image(systemName: event.iconName)
-                                    .font(.system(size: 40))
+                    VStack(spacing: 16) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                .fill(event.color.opacity(0.18))
+                                .frame(width: 112, height: 112)
+                            Image(systemName: event.iconName)
+                                .font(.system(size: 46, weight: .medium))
+                                .foregroundStyle(event.color)
+                        }
+
+                        VStack(spacing: 4) {
+                            Text(event.name)
+                                .font(.system(.title, design: .rounded).weight(.bold))
+                                .multilineTextAlignment(.center)
+
+                            Text(event.formattedDate)
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+
+                        VStack(spacing: 2) {
+                            if daysUntil == 0 {
+                                Text("Today")
+                                    .font(.system(size: 40, weight: .heavy, design: .rounded))
                                     .foregroundStyle(event.color)
+                            } else {
+                                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                                    Text("\(daysUntil)")
+                                        .font(.system(size: 40, weight: .heavy, design: .rounded))
+                                        .monospacedDigit()
+                                        .foregroundStyle(daysUntil <= 7 ? Theme.celebration : event.color)
+                                    Text(daysUntil == 1 ? "day" : "days")
+                                        .font(.system(.title3, design: .rounded).weight(.semibold))
+                                        .foregroundStyle(Theme.textSecondary)
+                                }
                             }
-                        },
-                        chips: { EmptyView() },
-                        pills: pills(for: event, daysUntil: daysUntil)
-                    )
+                            if let years = event.turnsYears {
+                                Text(years == 1 ? "1 year anniversary" : "\(years) year anniversary")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Theme.textSecondary)
+                            } else {
+                                Text("until")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
+                        }
+                        .padding(.top, 4)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
-                .listRowBackground(Color.clear)
 
                 if !event.notes.isEmpty {
-                    Section("Notes") {
+                    Section {
+                        Text("Notes")
+                            .font(.system(.title3, design: .rounded).weight(.bold))
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                            .padding(.bottom, 4)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
+                    Section {
                         Text(event.notes)
-                            .foregroundStyle(.secondary)
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
+                                    .fill(Theme.card)
+                            )
+                            .cardShadow()
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                     }
                 }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Theme.surface)
             .navigationTitle(event.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -11,6 +11,7 @@ struct AddPersonView: View {
 
     @State private var firstName = ""
     @State private var lastName = ""
+    @State private var nickname = ""
     @State private var notes = ""
 
     @State private var selectedYear: Int? = Calendar.current.component(.year, from: .now)
@@ -22,10 +23,8 @@ struct AddPersonView: View {
     @State private var notifyOneWeekBefore = true
 
     @State private var selectedPhoto: PhotosPickerItem?
-    @State private var rawUIImage: UIImage?
+    @State private var cropperImage: IdentifiableImage?
     @State private var croppedImage: UIImage?
-
-    @State private var showCropper = false
 
     @FocusState private var firstNameFocused: Bool
     @FocusState private var lastNameFocused: Bool
@@ -54,16 +53,13 @@ struct AddPersonView: View {
                 Task {
                     if let data = try? await selectedPhoto?.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
-                        rawUIImage = uiImage
-                        showCropper = true
+                        cropperImage = IdentifiableImage(image: uiImage)
                     }
                 }
             }
-            .fullScreenCover(isPresented: $showCropper) {
-                if let rawUIImage {
-                    ImageCropperView(image: rawUIImage) { cropped in
-                        croppedImage = cropped
-                    }
+            .fullScreenCover(item: $cropperImage) { item in
+                ImageCropperView(image: item.image) { cropped in
+                    croppedImage = cropped
                 }
             }
         }
@@ -109,6 +105,12 @@ struct AddPersonView: View {
             TextField("Last name", text: $lastName)
                 .focused($lastNameFocused)
                 .textContentType(.familyName)
+        }
+        Section {
+            TextField("Nickname", text: $nickname)
+                .textContentType(.nickname)
+        } footer: {
+            Text("Shown on the home screen if set.")
         }
     }
 
@@ -193,6 +195,7 @@ struct AddPersonView: View {
         let person = Person(
             firstName: firstName,
             lastName: lastName,
+            nickname: nickname.trimmingCharacters(in: .whitespaces),
             notes: notes,
             birthdayDay: selectedDay,
             birthdayMonth: selectedMonth,

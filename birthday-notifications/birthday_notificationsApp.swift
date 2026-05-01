@@ -27,6 +27,7 @@ struct birthday_notificationsApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .tint(Theme.brand)
                 .onAppear {
                     NotificationManager.shared.requestPermission()
                 }

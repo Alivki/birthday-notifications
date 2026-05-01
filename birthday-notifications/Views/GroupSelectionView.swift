@@ -35,15 +35,21 @@ struct GroupSelectionView: View {
                         toggle(group)
                         dismiss()
                     } label: {
-                        HStack(spacing: 12) {
-                            Circle()
-                                .fill(group.color)
-                                .frame(width: 14, height: 14)
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(group.color.opacity(0.18))
+                                    .frame(width: 32, height: 32)
+                                Circle()
+                                    .fill(group.color)
+                                    .frame(width: 12, height: 12)
+                            }
                             Text(group.name)
                                 .foregroundStyle(.primary)
                             Spacer()
                             if selectedGroups.contains(group.id) {
                                 Image(systemName: "checkmark")
+                                    .font(.body.weight(.semibold))
                                     .foregroundStyle(.tint)
                             }
                         }

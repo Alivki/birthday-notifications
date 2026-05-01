@@ -11,6 +11,7 @@ struct BackupData: Codable {
 struct PersonBackup: Codable {
     var firstName: String
     var lastName: String
+    var nickname: String? = nil
     var notes: String
     var birthdayDay: Int
     var birthdayMonth: Int
@@ -56,6 +57,7 @@ final class BackupManager {
             PersonBackup(
                 firstName: person.firstName,
                 lastName: person.lastName,
+                nickname: person.nickname.isEmpty ? nil : person.nickname,
                 notes: person.notes,
                 birthdayDay: person.birthdayDay,
                 birthdayMonth: person.birthdayMonth,
@@ -132,6 +134,7 @@ final class BackupManager {
             let person = Person(
                 firstName: personBackup.firstName,
                 lastName: personBackup.lastName,
+                nickname: personBackup.nickname ?? "",
                 notes: personBackup.notes,
                 birthdayDay: personBackup.birthdayDay,
                 birthdayMonth: personBackup.birthdayMonth,

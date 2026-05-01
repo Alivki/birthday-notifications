@@ -64,6 +64,8 @@ struct SettingsView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Theme.surface)
             .navigationTitle("Settings")
             .sheet(isPresented: $showExportShare) {
                 if let url = exportFileURL {

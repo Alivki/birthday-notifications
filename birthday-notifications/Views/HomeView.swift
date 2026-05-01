@@ -18,11 +18,55 @@ struct HomeView: View {
         Self.monthFormatter.string(from: Date())
     }
 
+    private var currentDateLine: String {
+        Self.weekdayDayFormatter.string(from: Date())
+    }
+
     private static let monthFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "MMMM"
         return f
     }()
+
+    private static let weekdayDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE, MMMM d"
+        return f
+    }()
+
+
+    @ViewBuilder
+    private func sectionHeader(_ title: String, count: Int) -> some View {
+        Section {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title)
+                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .foregroundStyle(.primary)
+                Text("\(count)")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textSecondary)
+                    .monospacedDigit()
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 6)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        }
+    }
+
+    private var todayHighlights: [(title: String, subtitle: String)] {
+        var items: [(String, String)] = []
+        for person in people where person.daysUntilBirthday == 0 {
+            items.append((person.fullName, "turns \(person.turnsAge)"))
+        }
+        for event in events where event.daysUntilEvent == 0 {
+            items.append((event.name, event.turnsYears.map { $0 == 1 ? "1 year" : "\($0) years" } ?? "today"))
+        }
+        return items
+    }
 
     private var birthdaysThisMonth: [Person] {
         let currentMonth = Calendar.current.component(.month, from: Date())
@@ -59,45 +103,49 @@ struct HomeView: View {
         let bdSoon = next30DaysPeople
         let evSoon = next30DaysEvents
 
+        let highlights = todayHighlights
+
         return NavigationStack {
             List {
                 Section {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(currentMonthName.uppercased())
-                            .font(.caption.weight(.semibold))
-                            .tracking(1.2)
-                            .foregroundStyle(.secondary)
+                    HeroCard(
+                        eyebrow: currentMonthName.uppercased() + " · " + currentDateLine,
+                        count: monthCount,
+                        peopleCount: bdMonth.count,
+                        eventCount: evMonth.count
+                    )
+                    .plainCardRow()
+                }
 
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text("\(monthCount)")
-                                .font(.system(size: 52, weight: .bold, design: .rounded))
-                                .contentTransition(.numericText())
-                                .monospacedDigit()
-
-                            Text("^[\(monthCount) thing](inflect: true) to remember")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
+                if !highlights.isEmpty {
+                    Section {
+                        TodayCard(items: highlights)
+                            .plainCardRow()
                     }
-                    .padding(.vertical, 4)
-                    .listRowSeparator(.hidden)
                 }
 
                 if !bdMonth.isEmpty || !evMonth.isEmpty {
-                    Section("This month") {
+                    sectionHeader("This month", count: bdMonth.count + evMonth.count)
+                    Section {
                         ForEach(evMonth) { event in
-                            NavigationLink(value: event.persistentModelID) {
+                            CardLink(value: event.persistentModelID) {
                                 EventRow(event: event)
                             }
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                         .onDelete { offsets in
                             for i in offsets { modelContext.delete(evMonth[i]) }
                         }
 
                         ForEach(bdMonth) { person in
-                            NavigationLink(value: person.persistentModelID) {
+                            CardLink(value: person.persistentModelID) {
                                 PersonRow(person: person)
                             }
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                         .onDelete { offsets in
                             for i in offsets { modelContext.delete(bdMonth[i]) }
@@ -106,20 +154,27 @@ struct HomeView: View {
                 }
 
                 if !bdSoon.isEmpty || !evSoon.isEmpty {
-                    Section("Coming up") {
+                    sectionHeader("Coming up", count: bdSoon.count + evSoon.count)
+                    Section {
                         ForEach(evSoon) { event in
-                            NavigationLink(value: event.persistentModelID) {
+                            CardLink(value: event.persistentModelID) {
                                 EventRow(event: event)
                             }
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                         .onDelete { offsets in
                             for i in offsets { modelContext.delete(evSoon[i]) }
                         }
 
                         ForEach(bdSoon) { person in
-                            NavigationLink(value: person.persistentModelID) {
+                            CardLink(value: person.persistentModelID) {
                                 PersonRow(person: person)
                             }
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                         .onDelete { offsets in
                             for i in offsets { modelContext.delete(bdSoon[i]) }
@@ -127,7 +182,9 @@ struct HomeView: View {
                     }
                 }
             }
-            .listStyle(.insetGrouped)
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Theme.surface)
             .navigationTitle("Home")
             .navigationDestination(for: PersistentIdentifier.self) { id in
                 if let _ = try? modelContext.model(for: id) as? Event {
@@ -189,33 +246,35 @@ struct PersonRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            PersonPhoto(person: person, size: 48)
+            PersonPhoto(person: person, size: 56)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(person.fullName)
-                    .font(.body.weight(.semibold))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(person.displayName)
+                    .font(.system(.body, design: .rounded).weight(.semibold))
                     .lineLimit(1)
+                    .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Text(person.nextBirthdayWeekdayAndDate)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
                         .lineLimit(1)
-
                     Text("·")
-                        .foregroundStyle(.secondary)
-
                     Text("turns \(person.turnsAge)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
+                .font(.subheadline)
+                .foregroundStyle(Theme.textSecondary)
             }
 
-            DaysBadge(days: person.daysUntilBirthday, accent: .pink)
+            DaysBadge(days: person.daysUntilBirthday)
         }
-        .padding(.vertical, 6)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
+                .fill(Theme.card)
+        )
+        .cardShadow()
     }
 }
 
@@ -227,40 +286,43 @@ struct EventRow: View {
     var body: some View {
         HStack(spacing: 14) {
             ZStack {
-                Circle()
-                    .fill(event.color.opacity(0.15))
-                    .frame(width: 48, height: 48)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(event.color.opacity(0.14))
+                    .frame(width: 56, height: 56)
                 Image(systemName: event.iconName)
-                    .font(.title3)
+                    .font(.title3.weight(.medium))
                     .foregroundStyle(event.color)
             }
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(event.name)
-                    .font(.body.weight(.semibold))
+                    .font(.system(.body, design: .rounded).weight(.semibold))
                     .lineLimit(1)
+                    .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Text(event.nextOccurrenceWeekdayAndDate)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
                         .lineLimit(1)
-
                     if let years = event.turnsYears {
                         Text("·")
-                            .foregroundStyle(.secondary)
                         Text("^[\(years) year](inflect: true)")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
                 }
+                .font(.subheadline)
+                .foregroundStyle(Theme.textSecondary)
             }
 
-            DaysBadge(days: event.daysUntilEvent, accent: event.color)
+            DaysBadge(days: event.daysUntilEvent)
         }
-        .padding(.vertical, 6)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
+                .fill(Theme.card)
+        )
+        .cardShadow()
     }
 }
 
@@ -268,26 +330,45 @@ struct EventRow: View {
 
 struct DaysBadge: View {
     let days: Int
-    let accent: Color
+    /// Unused for the "chill" case but kept so callers stay simple.
+    var accent: Color = Theme.celebration
 
     var body: some View {
         if days == 0 {
-            Text("Today")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(accent)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(accent.opacity(0.14), in: Capsule())
-        } else {
-            VStack(alignment: .trailing, spacing: 0) {
-                Text("\(days)")
-                    .font(.callout.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(.primary)
-                Text(days == 1 ? "day" : "days")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Image(systemName: "sparkles")
+                    .font(.caption2.weight(.bold))
+                Text("Today")
+                    .font(.caption.weight(.bold))
             }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(Theme.celebration))
+        } else if days <= 7 {
+            VStack(spacing: -1) {
+                Text("\(days)")
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.celebration)
+                Text(days == 1 ? "day" : "days")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Theme.celebration.opacity(0.75))
+            }
+            .frame(width: 54, height: 50)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Theme.celebration.opacity(0.10))
+            )
+        } else {
+            HStack(spacing: 3) {
+                Text("\(days)")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .monospacedDigit()
+                Text("d")
+                    .font(.subheadline.weight(.medium))
+            }
+            .foregroundStyle(Theme.textSecondary)
         }
     }
 }
@@ -315,6 +396,132 @@ struct PersonPhoto: View {
                         .foregroundStyle(.gray)
                 )
         }
+    }
+}
+
+// MARK: - Identifiable image (for sheet/cover bindings)
+
+struct IdentifiableImage: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+// MARK: - List row helper
+
+extension View {
+    func plainCardRow() -> some View {
+        self
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
+}
+
+/// Wraps a card in an invisible NavigationLink so the System chevron isn't drawn.
+/// The visible card sits in front; the link fills the row underneath.
+struct CardLink<Content: View, Value: Hashable>: View {
+    let value: Value
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ZStack {
+            NavigationLink(value: value) { EmptyView() }
+                .opacity(0)
+            content()
+                .allowsHitTesting(false)
+        }
+    }
+}
+
+// MARK: - Hero card
+
+struct HeroCard: View {
+    let eyebrow: String
+    let count: Int
+    let peopleCount: Int
+    let eventCount: Int
+
+    private var breakdownText: Text {
+        let dot = Text(" · ").foregroundStyle(Theme.brandDeep.opacity(0.4))
+        let bd = Text("^[\(peopleCount) birthday](inflect: true)")
+        let ev = Text("^[\(eventCount) event](inflect: true)")
+        if peopleCount > 0 && eventCount > 0 { return bd + dot + ev }
+        if peopleCount > 0 { return bd }
+        if eventCount > 0 { return ev }
+        return Text("nothing scheduled")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(eyebrow)
+                .font(.caption2.weight(.bold))
+                .tracking(1.4)
+                .foregroundStyle(Theme.brandDeep.opacity(0.5))
+
+            HStack(alignment: .lastTextBaseline, spacing: 10) {
+                Text("\(count)")
+                    .font(.system(size: 72, weight: .heavy, design: .rounded))
+                    .contentTransition(.numericText())
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.brandDeep)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+
+                Text(count == 1 ? "thing to remember" : "things to remember")
+                    .font(.system(.title3, design: .rounded).weight(.semibold))
+                    .foregroundStyle(Theme.brandDeep)
+                    .padding(.bottom, 8)
+            }
+
+            breakdownText
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Theme.brandDeep.opacity(0.7))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.heroCorner, style: .continuous)
+                .fill(Theme.brandSoft)
+        )
+    }
+}
+
+// MARK: - Today card
+
+struct TodayCard: View {
+    let items: [(title: String, subtitle: String)]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Text("🎉")
+                    .font(.callout)
+                Text("TODAY")
+                    .font(.caption2.weight(.bold))
+                    .tracking(1.6)
+                    .foregroundStyle(Theme.celebration)
+                Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(items.indices, id: \.self) { i in
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(items[i].title)
+                            .font(.system(.title3, design: .rounded).weight(.bold))
+                            .foregroundStyle(.primary)
+                        Text(items[i].subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
+                .fill(Theme.celebrationSoft)
+        )
     }
 }
 
@@ -502,21 +709,23 @@ struct DetailPill: Identifiable {
 struct DetailHeader<Icon: View, Chips: View>: View {
     let title: String
     let subtitle: String
+    let accent: Color
     @ViewBuilder let icon: () -> Icon
     @ViewBuilder let chips: () -> Chips
     let pills: [DetailPill]
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 16) {
             icon()
+                .padding(.top, 8)
 
             VStack(spacing: 4) {
                 Text(title)
-                    .font(.title2.weight(.bold))
+                    .font(.system(.title, design: .rounded).weight(.bold))
                     .multilineTextAlignment(.center)
 
                 Text(subtitle)
-                    .font(.subheadline)
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
             }
 
@@ -527,9 +736,15 @@ struct DetailHeader<Icon: View, Chips: View>: View {
                     CountdownPill(title: pill.title, accent: pill.accent, filled: pill.filled)
                 }
             }
+            .padding(.bottom, 6)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.heroCorner, style: .continuous)
+                .fill(accent.opacity(0.10))
+        )
     }
 }
 
@@ -582,12 +797,24 @@ struct FilterChip: View {
 
     var body: some View {
         Button(action: action) {
-            Text(label)
-                .font(.subheadline.weight(.medium))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(isSelected ? color.opacity(0.15) : .gray.opacity(0.08), in: Capsule())
-                .foregroundStyle(isSelected ? color : .secondary)
+            HStack(spacing: 6) {
+                if isSelected {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 6, height: 6)
+                }
+                Text(label)
+                    .font(.subheadline.weight(.semibold))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(isSelected ? color : Theme.card, in: Capsule())
+            .foregroundStyle(isSelected ? .white : .primary)
+            .overlay(
+                Capsule()
+                    .stroke(isSelected ? Color.clear : Color.black.opacity(0.06), lineWidth: 1)
+            )
         }
+        .buttonStyle(.plain)
     }
 }

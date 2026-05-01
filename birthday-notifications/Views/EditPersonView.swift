@@ -11,6 +11,7 @@ struct EditPersonView: View {
 
     @State private var firstName: String
     @State private var lastName: String
+    @State private var nickname: String
     @State private var notes: String
     @State private var selectedDay: Int
     @State private var selectedMonth: Int
@@ -21,9 +22,8 @@ struct EditPersonView: View {
     @State private var notifyOneWeekBefore: Bool
 
     @State private var selectedPhoto: PhotosPickerItem?
-    @State private var rawUIImage: UIImage?
+    @State private var cropperImage: IdentifiableImage?
     @State private var croppedImage: UIImage?
-    @State private var showCropper = false
 
     private var currentYear: Int { Calendar.current.component(.year, from: .now) }
 
@@ -31,6 +31,7 @@ struct EditPersonView: View {
         self.person = person
         _firstName = State(initialValue: person.firstName)
         _lastName = State(initialValue: person.lastName)
+        _nickname = State(initialValue: person.nickname)
         _notes = State(initialValue: person.notes)
         _selectedDay = State(initialValue: person.birthdayDay)
         _selectedMonth = State(initialValue: person.birthdayMonth)
@@ -67,6 +68,12 @@ struct EditPersonView: View {
                         .textContentType(.givenName)
                     TextField("Last name", text: $lastName)
                         .textContentType(.familyName)
+                }
+                Section {
+                    TextField("Nickname", text: $nickname)
+                        .textContentType(.nickname)
+                } footer: {
+                    Text("Shown on the home screen if set.")
                 }
 
                 // Group
@@ -119,16 +126,13 @@ struct EditPersonView: View {
                 Task {
                     if let data = try? await selectedPhoto?.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
-                        rawUIImage = uiImage
-                        showCropper = true
+                        cropperImage = IdentifiableImage(image: uiImage)
                     }
                 }
             }
-            .fullScreenCover(isPresented: $showCropper) {
-                if let rawUIImage {
-                    ImageCropperView(image: rawUIImage) { cropped in
-                        croppedImage = cropped
-                    }
+            .fullScreenCover(item: $cropperImage) { item in
+                ImageCropperView(image: item.image) { cropped in
+                    croppedImage = cropped
                 }
             }
         }
@@ -145,6 +149,7 @@ struct EditPersonView: View {
     private func save() {
         person.firstName = firstName
         person.lastName = lastName
+        person.nickname = nickname.trimmingCharacters(in: .whitespaces)
         person.notes = notes
         person.birthdayDay = selectedDay
         person.birthdayMonth = selectedMonth
