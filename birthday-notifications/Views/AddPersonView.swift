@@ -25,6 +25,9 @@ struct AddPersonView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var cropperImage: IdentifiableImage?
     @State private var croppedImage: UIImage?
+    @State private var showPhotoSourceDialog = false
+    @State private var showCamera = false
+    @State private var showLibrary = false
 
     @FocusState private var firstNameFocused: Bool
     @FocusState private var lastNameFocused: Bool
@@ -49,6 +52,14 @@ struct AddPersonView: View {
                     onSave: save
                 )
             }
+            .confirmationDialog("Add Photo", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button("Take Photo") { showCamera = true }
+                }
+                Button("Choose from Library") { showLibrary = true }
+                Button("Cancel", role: .cancel) {}
+            }
+            .photosPicker(isPresented: $showLibrary, selection: $selectedPhoto, matching: .images)
             .onChange(of: selectedPhoto) {
                 Task {
                     if let data = try? await selectedPhoto?.loadTransferable(type: Data.self),
@@ -56,6 +67,12 @@ struct AddPersonView: View {
                         cropperImage = IdentifiableImage(image: uiImage)
                     }
                 }
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPicker { image in
+                    cropperImage = IdentifiableImage(image: image)
+                }
+                .ignoresSafeArea()
             }
             .fullScreenCover(item: $cropperImage) { item in
                 ImageCropperView(image: item.image) { cropped in
@@ -70,27 +87,32 @@ struct AddPersonView: View {
     @ViewBuilder
     private var photoSection: some View {
         Section {
-            PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                if let croppedImage {
-                    Image(uiImage: croppedImage)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 160, height: 160)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(.gray.opacity(0.2), lineWidth: 3))
-                } else {
-                    Circle()
-                        .fill(.gray.opacity(0.12))
-                        .frame(width: 160, height: 160)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 64))
-                                .foregroundStyle(.gray.opacity(0.4))
-                        )
-                        .overlay(Circle().stroke(.gray.opacity(0.15), lineWidth: 3))
+            Button {
+                showPhotoSourceDialog = true
+            } label: {
+                Group {
+                    if let croppedImage {
+                        Image(uiImage: croppedImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 160, height: 160)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(.gray.opacity(0.2), lineWidth: 3))
+                    } else {
+                        Circle()
+                            .fill(.gray.opacity(0.12))
+                            .frame(width: 160, height: 160)
+                            .overlay(
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 64))
+                                    .foregroundStyle(.gray.opacity(0.4))
+                            )
+                            .overlay(Circle().stroke(.gray.opacity(0.15), lineWidth: 3))
+                    }
                 }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
+            .buttonStyle(.plain)
         }
         .listRowBackground(Color.clear)
     }

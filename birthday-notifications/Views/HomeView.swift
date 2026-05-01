@@ -706,10 +706,15 @@ struct StatBlock: View {
     var primaryIsCompact: Bool = false
     let secondaryTitle: String
     let secondaryDetail: String
+    /// SF Symbol shown beside the primary secondary line (e.g. cake / sparkles).
+    var secondaryTitleIcon: String? = nil
+    /// SF Symbol shown beside the detail line (e.g. calendar).
+    var secondaryDetailIcon: String? = nil
     var tinted: Bool = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 18) {
+        HStack(alignment: .center, spacing: 22) {
+            // Primary anchor stat
             VStack(alignment: .leading, spacing: 4) {
                 Text(primaryValue)
                     .font(.system(size: primaryIsCompact ? 36 : 52, weight: .black))
@@ -724,18 +729,11 @@ struct StatBlock: View {
                     .foregroundStyle(Theme.textSecondary)
             }
 
-            Rectangle()
-                .fill(Color.black.opacity(0.07))
-                .frame(width: 1, height: 56)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(secondaryTitle)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                Text(secondaryDetail)
-                    .font(.footnote)
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(2)
+            // Secondary info — icons replace the divider and give the
+            // narrative side its own visual rhythm.
+            VStack(alignment: .leading, spacing: 10) {
+                metaRow(icon: secondaryTitleIcon, text: secondaryTitle, isPrimary: true)
+                metaRow(icon: secondaryDetailIcon, text: secondaryDetail, isPrimary: false)
             }
 
             Spacer(minLength: 0)
@@ -746,6 +744,22 @@ struct StatBlock: View {
                 .fill(tinted ? Theme.celebrationSoft : Theme.card)
         )
         .cardShadow()
+    }
+
+    @ViewBuilder
+    private func metaRow(icon: String?, text: String, isPrimary: Bool) -> some View {
+        HStack(spacing: 9) {
+            if let icon {
+                Image(systemName: icon)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(isPrimary ? primaryColor : Theme.textSecondary)
+                    .frame(width: 18, height: 18)
+            }
+            Text(text)
+                .font(isPrimary ? .subheadline.weight(.semibold) : .footnote)
+                .foregroundStyle(isPrimary ? .primary : Theme.textSecondary)
+                .lineLimit(2)
+        }
     }
 }
 

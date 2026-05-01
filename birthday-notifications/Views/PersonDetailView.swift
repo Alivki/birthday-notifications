@@ -25,11 +25,11 @@ struct PersonDetailView: View {
                 // Single left-aligned column establishes the screen's spine.
                 Section {
                     VStack(alignment: .leading, spacing: 20) {
-                        // Identity: photo + name + meta
-                        HStack(spacing: 16) {
+                        // Identity: photo + name + meta + group chips
+                        HStack(alignment: .top, spacing: 16) {
                             PersonPhoto(person: person, size: 76)
 
-                            VStack(alignment: .leading, spacing: 3) {
+                            VStack(alignment: .leading, spacing: 6) {
                                 Text(person.fullName)
                                     .font(.title2.weight(.bold))
                                     .lineLimit(2)
@@ -41,13 +41,20 @@ struct PersonDetailView: View {
                                 Text(person.formattedBirthday)
                                     .font(.footnote.weight(.medium))
                                     .foregroundStyle(Theme.textSecondary)
+                                if !person.groups.isEmpty {
+                                    HStack(spacing: 6) {
+                                        ForEach(person.groups) { group in
+                                            GroupChip(group: group)
+                                        }
+                                    }
+                                    .padding(.top, 2)
+                                }
                             }
 
                             Spacer(minLength: 0)
                         }
 
-                        // Stat block — big anchor stat on the left, supporting
-                        // info on the right, separated by a hairline divider.
+                        // Stat block: anchor + iconified secondary info
                         StatBlock(
                             primaryValue: daysUntil == 0 ? "TODAY" : "\(daysUntil)",
                             primaryLabel: daysUntil == 0 ? "BIRTHDAY" : "DAYS LEFT",
@@ -55,18 +62,10 @@ struct PersonDetailView: View {
                             primaryIsCompact: daysUntil == 0,
                             secondaryTitle: "Turning \(person.turnsAge)",
                             secondaryDetail: person.nextBirthdayWeekdayAndDate,
+                            secondaryTitleIcon: "birthday.cake.fill",
+                            secondaryDetailIcon: "calendar",
                             tinted: daysUntil == 0
                         )
-
-                        // Group chips — tucked under the stat block, left-
-                        // aligned so they read as context rather than a row.
-                        if !person.groups.isEmpty {
-                            HStack(spacing: 6) {
-                                ForEach(person.groups) { group in
-                                    GroupChip(group: group)
-                                }
-                            }
-                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)

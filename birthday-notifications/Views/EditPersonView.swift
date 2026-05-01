@@ -24,6 +24,9 @@ struct EditPersonView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var cropperImage: IdentifiableImage?
     @State private var croppedImage: UIImage?
+    @State private var showPhotoSourceDialog = false
+    @State private var showCamera = false
+    @State private var showLibrary = false
 
     private var currentYear: Int { Calendar.current.component(.year, from: .now) }
 
@@ -46,19 +49,24 @@ struct EditPersonView: View {
             Form {
                 // Photo
                 Section {
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        if let croppedImage {
-                            Image(uiImage: croppedImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 120, height: 120)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(.gray.opacity(0.2), lineWidth: 2))
-                        } else {
-                            PersonPhoto(person: person, size: 120)
+                    Button {
+                        showPhotoSourceDialog = true
+                    } label: {
+                        Group {
+                            if let croppedImage {
+                                Image(uiImage: croppedImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(.gray.opacity(0.2), lineWidth: 2))
+                            } else {
+                                PersonPhoto(person: person, size: 120)
+                            }
                         }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
+                    .buttonStyle(.plain)
                 }
                 .listRowBackground(Color.clear)
 
@@ -122,6 +130,14 @@ struct EditPersonView: View {
                     onSave: save
                 )
             }
+            .confirmationDialog("Add Photo", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button("Take Photo") { showCamera = true }
+                }
+                Button("Choose from Library") { showLibrary = true }
+                Button("Cancel", role: .cancel) {}
+            }
+            .photosPicker(isPresented: $showLibrary, selection: $selectedPhoto, matching: .images)
             .onChange(of: selectedPhoto) {
                 Task {
                     if let data = try? await selectedPhoto?.loadTransferable(type: Data.self),
@@ -129,6 +145,12 @@ struct EditPersonView: View {
                         cropperImage = IdentifiableImage(image: uiImage)
                     }
                 }
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPicker { image in
+                    cropperImage = IdentifiableImage(image: image)
+                }
+                .ignoresSafeArea()
             }
             .fullScreenCover(item: $cropperImage) { item in
                 ImageCropperView(image: item.image) { cropped in

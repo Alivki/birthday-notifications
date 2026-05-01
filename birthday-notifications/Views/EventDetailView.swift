@@ -58,6 +58,8 @@ struct EventDetailView: View {
                             primaryIsCompact: daysUntil == 0,
                             secondaryTitle: secondaryTitle,
                             secondaryDetail: secondaryDetail,
+                            secondaryTitleIcon: event.turnsYears != nil ? "sparkles" : event.iconName,
+                            secondaryDetailIcon: "calendar",
                             tinted: daysUntil == 0
                         )
                     }

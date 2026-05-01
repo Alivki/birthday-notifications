@@ -14,39 +14,47 @@ struct AddGiftIdeaView: View {
     @State private var url = ""
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var pickedImage: UIImage?
+    @State private var showPhotoSourceDialog = false
+    @State private var showCamera = false
+    @State private var showLibrary = false
 
     var body: some View {
         NavigationStack {
             Form {
                 // Photo - same style as person picker but square, no cropping
                 Section {
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        if let pickedImage {
-                            Image(uiImage: pickedImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 160, height: 160)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(.gray.opacity(0.2), lineWidth: 3)
-                                )
-                        } else {
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(.gray.opacity(0.12))
-                                .frame(width: 160, height: 160)
-                                .overlay(
-                                    Image(systemName: "gift.fill")
-                                        .font(.system(size: 48))
-                                        .foregroundStyle(.gray.opacity(0.4))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(.gray.opacity(0.15), lineWidth: 3)
-                                )
+                    Button {
+                        showPhotoSourceDialog = true
+                    } label: {
+                        Group {
+                            if let pickedImage {
+                                Image(uiImage: pickedImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 160, height: 160)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(.gray.opacity(0.2), lineWidth: 3)
+                                    )
+                            } else {
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.gray.opacity(0.12))
+                                    .frame(width: 160, height: 160)
+                                    .overlay(
+                                        Image(systemName: "gift.fill")
+                                            .font(.system(size: 48))
+                                            .foregroundStyle(.gray.opacity(0.4))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(.gray.opacity(0.15), lineWidth: 3)
+                                    )
+                            }
                         }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
+                    .buttonStyle(.plain)
                 }
                 .listRowBackground(Color.clear)
 
@@ -91,6 +99,14 @@ struct AddGiftIdeaView: View {
                     onSave: save
                 )
             }
+            .confirmationDialog("Add Photo", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button("Take Photo") { showCamera = true }
+                }
+                Button("Choose from Library") { showLibrary = true }
+                Button("Cancel", role: .cancel) {}
+            }
+            .photosPicker(isPresented: $showLibrary, selection: $selectedPhoto, matching: .images)
             .onChange(of: selectedPhoto) {
                 Task {
                     if let data = try? await selectedPhoto?.loadTransferable(type: Data.self),
@@ -98,6 +114,12 @@ struct AddGiftIdeaView: View {
                         pickedImage = uiImage
                     }
                 }
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPicker { image in
+                    pickedImage = image
+                }
+                .ignoresSafeArea()
             }
         }
     }
