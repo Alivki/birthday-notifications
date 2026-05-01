@@ -109,7 +109,7 @@ struct HomeView: View {
             List {
                 Section {
                     HeroCard(
-                        eyebrow: currentMonthName.uppercased() + " · " + currentDateLine,
+                        eyebrow: currentDateLine.uppercased(),
                         count: monthCount,
                         peopleCount: bdMonth.count,
                         eventCount: evMonth.count

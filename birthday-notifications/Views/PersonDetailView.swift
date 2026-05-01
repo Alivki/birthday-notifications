@@ -16,56 +16,77 @@ struct PersonDetailView: View {
     var body: some View {
         if let person {
             let daysUntil = person.daysUntilBirthday
+            let countdownColor: Color = daysUntil <= 7 ? Theme.celebration : Theme.brand
+            let nicknameDistinct = !person.nickname.trimmingCharacters(in: .whitespaces).isEmpty
+                && person.nickname != person.fullName
+
             List {
-                // Header — clean profile-card style, no tinted panel
+                // Header — asymmetric identity row + hero countdown + chips.
+                // Single left-aligned column establishes the screen's spine.
                 Section {
-                    VStack(spacing: 16) {
-                        PersonPhoto(person: person, size: 112)
+                    VStack(alignment: .leading, spacing: 24) {
+                        // Identity: photo on the left, name + meta to the right.
+                        HStack(spacing: 16) {
+                            PersonPhoto(person: person, size: 76)
 
-                        VStack(spacing: 4) {
-                            Text(person.fullName)
-                                .font(.system(.title, design: .rounded).weight(.bold))
-                                .multilineTextAlignment(.center)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(person.fullName)
+                                    .font(.system(.title2, design: .rounded).weight(.bold))
+                                    .lineLimit(2)
+                                if nicknameDistinct {
+                                    Text("\u{201C}\(person.nickname)\u{201D}")
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(Theme.brand)
+                                }
+                                Text(person.formattedBirthday)
+                                    .font(.subheadline)
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
 
-                            Text(person.formattedBirthday)
-                                .font(.subheadline)
-                                .foregroundStyle(Theme.textSecondary)
+                            Spacer(minLength: 0)
                         }
 
-                        // Big countdown number
-                        VStack(spacing: 2) {
+                        // Countdown — the hero metric of the screen.
+                        VStack(alignment: .leading, spacing: 4) {
                             if daysUntil == 0 {
                                 Text("Today")
-                                    .font(.system(size: 40, weight: .heavy, design: .rounded))
+                                    .font(.system(size: 64, weight: .heavy, design: .rounded))
                                     .foregroundStyle(Theme.celebration)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
                             } else {
-                                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                                HStack(alignment: .lastTextBaseline, spacing: 8) {
                                     Text("\(daysUntil)")
-                                        .font(.system(size: 40, weight: .heavy, design: .rounded))
+                                        .font(.system(size: 64, weight: .heavy, design: .rounded))
                                         .monospacedDigit()
-                                        .foregroundStyle(daysUntil <= 7 ? Theme.celebration : Theme.brandDeep)
+                                        .foregroundStyle(countdownColor)
                                     Text(daysUntil == 1 ? "day" : "days")
-                                        .font(.system(.title3, design: .rounded).weight(.semibold))
+                                        .font(.system(.title2, design: .rounded).weight(.semibold))
                                         .foregroundStyle(Theme.textSecondary)
                                 }
                             }
-                            Text("until they turn \(person.turnsAge)")
-                                .font(.subheadline)
-                                .foregroundStyle(Theme.textSecondary)
+                            Text(daysUntil == 0
+                                ? "\(person.firstName.isEmpty ? "They turn" : "\(person.firstName) turns") \(person.turnsAge) today"
+                                : "until \(person.firstName.isEmpty ? "they turn" : "\(person.firstName) turns") \(person.turnsAge)"
+                            )
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(Theme.textSecondary)
                         }
-                        .padding(.top, 4)
 
+                        // Group chips — tucked under the metric, left-aligned
+                        // so they read as context rather than a separate row.
                         if !person.groups.isEmpty {
                             HStack(spacing: 6) {
                                 ForEach(person.groups) { group in
                                     GroupChip(group: group)
                                 }
                             }
-                            .frame(maxWidth: .infinity, alignment: .center)
                         }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 28)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
