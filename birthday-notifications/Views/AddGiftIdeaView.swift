@@ -51,7 +51,7 @@ struct AddGiftIdeaView: View {
                 .listRowBackground(Color.clear)
 
                 Section {
-                    TextField("Gift idea name", text: $title)
+                    TextField("What is it?", text: $title)
                 }
 
                 Section {
@@ -83,22 +83,13 @@ struct AddGiftIdeaView: View {
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle("Gift Idea")
+            .navigationTitle("New gift idea")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .fontWeight(.semibold)
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
-                        .tint(.blue)
-                        .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+                SaveCancelToolbar(
+                    saveDisabled: title.trimmingCharacters(in: .whitespaces).isEmpty,
+                    onSave: save
+                )
             }
             .onChange(of: selectedPhoto) {
                 Task {

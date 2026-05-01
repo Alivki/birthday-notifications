@@ -15,10 +15,14 @@ struct HomeView: View {
     @State private var toastMessage: String?
 
     private var currentMonthName: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM"
-        return formatter.string(from: Date())
+        Self.monthFormatter.string(from: Date())
     }
+
+    private static let monthFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMMM"
+        return f
+    }()
 
     private var birthdaysThisMonth: [Person] {
         let currentMonth = Calendar.current.component(.month, from: Date())
@@ -48,70 +52,82 @@ struct HomeView: View {
             .sorted { $0.daysUntilEvent < $1.daysUntilEvent }
     }
 
-    private var thisMonthCount: Int {
-        birthdaysThisMonth.count + eventsThisMonth.count
-    }
-
     var body: some View {
-        NavigationStack {
+        let bdMonth = birthdaysThisMonth
+        let evMonth = eventsThisMonth
+        let monthCount = bdMonth.count + evMonth.count
+        let bdSoon = next30DaysPeople
+        let evSoon = next30DaysEvents
+
+        return NavigationStack {
             List {
                 Section {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("\(thisMonthCount)")
-                            .font(.system(size: 48, weight: .bold))
-                            .contentTransition(.numericText())
-
-                        Text("Events in \(currentMonthName)")
-                            .font(.headline)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(currentMonthName.uppercased())
+                            .font(.caption.weight(.semibold))
+                            .tracking(1.2)
                             .foregroundStyle(.secondary)
+
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("\(monthCount)")
+                                .font(.system(size: 52, weight: .bold, design: .rounded))
+                                .contentTransition(.numericText())
+                                .monospacedDigit()
+
+                            Text("^[\(monthCount) thing](inflect: true) to remember")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                    .padding(.vertical, 4)
                     .listRowSeparator(.hidden)
                 }
 
-                if !birthdaysThisMonth.isEmpty || !eventsThisMonth.isEmpty {
-                    Section("This Month") {
-                        ForEach(eventsThisMonth) { event in
+                if !bdMonth.isEmpty || !evMonth.isEmpty {
+                    Section("This month") {
+                        ForEach(evMonth) { event in
                             NavigationLink(value: event.persistentModelID) {
                                 EventRow(event: event)
                             }
                         }
                         .onDelete { offsets in
-                            for i in offsets { modelContext.delete(eventsThisMonth[i]) }
+                            for i in offsets { modelContext.delete(evMonth[i]) }
                         }
 
-                        ForEach(birthdaysThisMonth) { person in
+                        ForEach(bdMonth) { person in
                             NavigationLink(value: person.persistentModelID) {
                                 PersonRow(person: person)
                             }
                         }
                         .onDelete { offsets in
-                            for i in offsets { modelContext.delete(birthdaysThisMonth[i]) }
+                            for i in offsets { modelContext.delete(bdMonth[i]) }
                         }
                     }
                 }
 
-                if !next30DaysPeople.isEmpty || !next30DaysEvents.isEmpty {
-                    Section("Next 30 Days") {
-                        ForEach(next30DaysEvents) { event in
+                if !bdSoon.isEmpty || !evSoon.isEmpty {
+                    Section("Coming up") {
+                        ForEach(evSoon) { event in
                             NavigationLink(value: event.persistentModelID) {
                                 EventRow(event: event)
                             }
                         }
                         .onDelete { offsets in
-                            for i in offsets { modelContext.delete(next30DaysEvents[i]) }
+                            for i in offsets { modelContext.delete(evSoon[i]) }
                         }
 
-                        ForEach(next30DaysPeople) { person in
+                        ForEach(bdSoon) { person in
                             NavigationLink(value: person.persistentModelID) {
                                 PersonRow(person: person)
                             }
                         }
                         .onDelete { offsets in
-                            for i in offsets { modelContext.delete(next30DaysPeople[i]) }
+                            for i in offsets { modelContext.delete(bdSoon[i]) }
                         }
                     }
                 }
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Home")
             .navigationDestination(for: PersistentIdentifier.self) { id in
                 if let _ = try? modelContext.model(for: id) as? Event {
@@ -123,9 +139,9 @@ struct HomeView: View {
             .overlay {
                 if people.isEmpty && events.isEmpty {
                     ContentUnavailableView(
-                        "No Events Yet",
+                        "Nothing to remember yet",
                         systemImage: "calendar.badge.plus",
-                        description: Text("Tap + to add someone or an event")
+                        description: Text("Tap + to add a person or an event.")
                     )
                 }
             }
@@ -172,43 +188,34 @@ struct PersonRow: View {
     let person: Person
 
     var body: some View {
-        HStack(spacing: 12) {
-            PersonPhoto(person: person, size: 50)
+        HStack(spacing: 14) {
+            PersonPhoto(person: person, size: 48)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(person.fullName)
                     .font(.body.weight(.semibold))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 HStack(spacing: 6) {
-                    Text("Turns \(person.turnsAge)")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.pink)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(.pink.opacity(0.12), in: Capsule())
-
                     Text(person.nextBirthdayWeekdayAndDate)
-                        .font(.caption)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+
+                    Text("·")
+                        .foregroundStyle(.secondary)
+
+                    Text("turns \(person.turnsAge)")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
             }
 
-            if person.daysUntilBirthday == 0 {
-                HStack(spacing: 3) {
-                    Text("Today")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.pink)
-                }
-            } else {
-                Text("In \(person.daysUntilBirthday)d")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            DaysBadge(days: person.daysUntilBirthday, accent: .pink)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
     }
 }
 
@@ -218,50 +225,70 @@ struct EventRow: View {
     let event: Event
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             ZStack {
                 Circle()
                     .fill(event.color.opacity(0.15))
-                    .frame(width: 50, height: 50)
+                    .frame(width: 48, height: 48)
                 Image(systemName: event.iconName)
                     .font(.title3)
                     .foregroundStyle(event.color)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(event.name)
                     .font(.body.weight(.semibold))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 HStack(spacing: 6) {
-                    if let years = event.turnsYears {
-                        Text("\(years) years")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(event.color)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
-                            .background(event.color.opacity(0.12), in: Capsule())
-                    }
-
                     Text(event.nextOccurrenceWeekdayAndDate)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+
+                    if let years = event.turnsYears {
+                        Text("·")
+                            .foregroundStyle(.secondary)
+                        Text("^[\(years) year](inflect: true)")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
             }
 
-            if event.daysUntilEvent == 0 {
-                Text("Today")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(event.color)
-            } else {
-                Text("In \(event.daysUntilEvent)d")
-                    .font(.caption)
+            DaysBadge(days: event.daysUntilEvent, accent: event.color)
+        }
+        .padding(.vertical, 6)
+    }
+}
+
+// MARK: - Days Badge
+
+struct DaysBadge: View {
+    let days: Int
+    let accent: Color
+
+    var body: some View {
+        if days == 0 {
+            Text("Today")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(accent)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(accent.opacity(0.14), in: Capsule())
+        } else {
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("\(days)")
+                    .font(.callout.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                Text(days == 1 ? "day" : "days")
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 4)
     }
 }
 
@@ -288,6 +315,260 @@ struct PersonPhoto: View {
                         .foregroundStyle(.gray)
                 )
         }
+    }
+}
+
+// MARK: - Helpers
+
+func daysUntilLabel(_ days: Int) -> String {
+    if days == 0 { return "Today" }
+    return "In \(days) \(days == 1 ? "day" : "days")"
+}
+
+// MARK: - Collapsible day/month/year picker
+
+struct CollapsibleDayMonthYearPicker: View {
+    let title: String
+    @Binding var day: Int
+    @Binding var month: Int
+    @Binding var year: Int?
+    let yearRange: ClosedRange<Int>
+    var nextLabel: String?
+    var nextValue: String?
+
+    @State private var expanded: Bool
+
+    init(
+        title: String,
+        day: Binding<Int>,
+        month: Binding<Int>,
+        year: Binding<Int?>,
+        yearRange: ClosedRange<Int>,
+        initiallyExpanded: Bool = true,
+        nextLabel: String? = nil,
+        nextValue: String? = nil
+    ) {
+        self.title = title
+        self._day = day
+        self._month = month
+        self._year = year
+        self.yearRange = yearRange
+        self.nextLabel = nextLabel
+        self.nextValue = nextValue
+        _expanded = State(initialValue: initiallyExpanded)
+    }
+
+    private var unspecifiedYearTag: Int { yearRange.upperBound + 1 }
+
+    private var yearBinding: Binding<Int> {
+        Binding(
+            get: { year ?? unspecifiedYearTag },
+            set: { year = $0 > yearRange.upperBound ? nil : $0 }
+        )
+    }
+
+    private var daysInSelectedMonth: Int {
+        let yr = year ?? 2000
+        let date = Calendar.current.date(from: DateComponents(year: yr, month: month))!
+        return Calendar.current.range(of: .day, in: .month, for: date)!.count
+    }
+
+    private var shortDate: String {
+        if let y = year {
+            let date = Calendar.current.date(from: DateComponents(year: y, month: month, day: day))!
+            return Self.monthDayYearFormatter.string(from: date)
+        } else {
+            let date = Calendar.current.date(from: DateComponents(year: 2000, month: month, day: day))!
+            return Self.monthDayFormatter.string(from: date)
+        }
+    }
+
+    private static let monthDayYearFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM dd, yyyy"
+        return f
+    }()
+
+    private static let monthDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM dd"
+        return f
+    }()
+
+    private static let monthSymbols: [String] = DateFormatter().monthSymbols
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Button {
+                withAnimation(.spring(duration: 0.4, bounce: 0.1)) {
+                    expanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Text(title)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text(shortDate)
+                        .foregroundStyle(.tint)
+                    Image(systemName: "chevron.down")
+                        .font(.caption2.weight(.semibold))
+                        .rotationEffect(.degrees(expanded ? 0 : -90))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if expanded {
+                HStack(spacing: 0) {
+                    Picker("", selection: $day) {
+                        ForEach(1...daysInSelectedMonth, id: \.self) { d in
+                            Text("\(d)").tag(d)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
+
+                    Picker("", selection: $month) {
+                        ForEach(1...12, id: \.self) { m in
+                            Text(Self.monthName(m)).tag(m)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
+
+                    Picker("", selection: yearBinding) {
+                        Text("---").tag(unspecifiedYearTag)
+                        ForEach(yearRange, id: \.self) { y in
+                            Text(String(y)).tag(y)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
+                }
+                .frame(height: 180)
+                .clipped()
+            }
+
+            if let nextLabel, let nextValue {
+                Divider()
+
+                HStack {
+                    Text(nextLabel)
+                    Spacer()
+                    Text(nextValue)
+                        .fontWeight(nextValue == "Today" ? .semibold : .regular)
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .animation(.spring(duration: 0.4, bounce: 0.1), value: expanded)
+    }
+
+    static func monthName(_ month: Int) -> String {
+        monthSymbols[month - 1]
+    }
+}
+
+// MARK: - Group chip
+
+struct GroupChip: View {
+    let group: PersonGroup
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(group.color)
+                .frame(width: 7, height: 7)
+            Text(group.name)
+                .font(.caption.weight(.medium))
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(group.color.opacity(0.12), in: Capsule())
+        .foregroundStyle(group.color)
+    }
+}
+
+// MARK: - Detail header
+
+struct DetailPill: Identifiable {
+    let id = UUID()
+    let title: String
+    let accent: Color
+    let filled: Bool
+}
+
+struct DetailHeader<Icon: View, Chips: View>: View {
+    let title: String
+    let subtitle: String
+    @ViewBuilder let icon: () -> Icon
+    @ViewBuilder let chips: () -> Chips
+    let pills: [DetailPill]
+
+    var body: some View {
+        VStack(spacing: 14) {
+            icon()
+
+            VStack(spacing: 4) {
+                Text(title)
+                    .font(.title2.weight(.bold))
+                    .multilineTextAlignment(.center)
+
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            chips()
+
+            HStack(spacing: 8) {
+                ForEach(pills) { pill in
+                    CountdownPill(title: pill.title, accent: pill.accent, filled: pill.filled)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+    }
+}
+
+// MARK: - Save / Cancel toolbar
+
+struct SaveCancelToolbar: ToolbarContent {
+    @Environment(\.dismiss) private var dismiss
+    let saveDisabled: Bool
+    let onSave: () -> Void
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Cancel") { dismiss() }
+        }
+        ToolbarItem(placement: .confirmationAction) {
+            Button("Save", action: onSave)
+                .fontWeight(.semibold)
+                .disabled(saveDisabled)
+        }
+    }
+}
+
+// MARK: - Countdown Pill
+
+struct CountdownPill: View {
+    let title: String
+    let accent: Color
+    var filled: Bool = true
+
+    var body: some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 11)
+            .padding(.vertical, 5)
+            .foregroundStyle(accent)
+            .background(filled ? accent.opacity(0.14) : Color.clear, in: Capsule())
+            .overlay(
+                Capsule().stroke(filled ? Color.clear : accent.opacity(0.35), lineWidth: 1)
+            )
     }
 }
 

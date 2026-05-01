@@ -15,51 +15,31 @@ struct PersonDetailView: View {
 
     var body: some View {
         if let person {
+            let daysUntil = person.daysUntilBirthday
             List {
                 // Header
                 Section {
-                    VStack(spacing: 12) {
-                        PersonPhoto(person: person, size: 100)
-
-                        Text(person.fullName)
-                            .font(.title2.weight(.bold))
-
-                        HStack(spacing: 8) {
-                            Text("Turns \(person.turnsAge)")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.pink)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(.pink.opacity(0.12), in: Capsule())
-
-                            ForEach(person.groups) { group in
-                                HStack(spacing: 4) {
-                                    Circle()
-                                        .fill(group.color)
-                                        .frame(width: 8, height: 8)
-                                    Text(group.name)
-                                        .font(.caption.weight(.medium))
+                    DetailHeader(
+                        title: person.fullName,
+                        subtitle: person.formattedBirthday,
+                        icon: { PersonPhoto(person: person, size: 104) },
+                        chips: {
+                            if !person.groups.isEmpty {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 6) {
+                                        ForEach(person.groups) { group in
+                                            GroupChip(group: group)
+                                        }
+                                    }
+                                    .padding(.horizontal, 1)
                                 }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(group.color.opacity(0.12), in: Capsule())
-                                .foregroundStyle(group.color)
                             }
-                        }
-
-                        HStack(spacing: 16) {
-                            Label(person.formattedBirthday, systemImage: "calendar")
-                            if person.daysUntilBirthday == 0 {
-                                Text("🎂 Today")
-                                    .fontWeight(.semibold)
-                            } else {
-                                Text("In \(person.daysUntilBirthday) days")
-                            }
-                        }
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
+                        },
+                        pills: [
+                            DetailPill(title: daysUntilLabel(daysUntil), accent: .pink, filled: true),
+                            DetailPill(title: "Turns \(person.turnsAge)", accent: .pink, filled: false),
+                        ]
+                    )
                 }
                 .listRowBackground(Color.clear)
 
@@ -73,24 +53,33 @@ struct PersonDetailView: View {
 
                 // Gift Ideas
                 Section {
-                    ForEach(person.giftIdeas.sorted(by: { $0.createdAt > $1.createdAt })) { gift in
+                    if person.giftIdeas.isEmpty {
                         Button {
-                            selectedGift = gift
+                            showAddGift = true
                         } label: {
-                            GiftIdeaRow(gift: gift)
+                            Label("Add a gift idea", systemImage: "plus")
+                        }
+                    } else {
+                        ForEach(person.giftIdeas.sorted(by: { $0.createdAt > $1.createdAt })) { gift in
+                            Button {
+                                selectedGift = gift
+                            } label: {
+                                GiftIdeaRow(gift: gift)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .onDelete { offsets in
+                            deleteGifts(offsets, person: person)
+                        }
+
+                        Button {
+                            showAddGift = true
+                        } label: {
+                            Label("Add another", systemImage: "plus")
                         }
                     }
-                    .onDelete { offsets in
-                        deleteGifts(offsets, person: person)
-                    }
-
-                    Button {
-                        showAddGift = true
-                    } label: {
-                        Label("Add Gift Idea", systemImage: "plus")
-                    }
                 } header: {
-                    Text("Gift Ideas")
+                    Text("Gift ideas")
                 }
             }
             .navigationTitle(person.firstName)
@@ -150,10 +139,10 @@ struct GiftIdeaRow: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                HStack {
+                HStack(spacing: 6) {
                     Text(gift.title)
                         .font(.body)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(gift.isPurchased ? .secondary : .primary)
                         .strikethrough(gift.isPurchased)
                     if gift.isPurchased {
                         Image(systemName: "checkmark.circle.fill")
@@ -165,13 +154,13 @@ struct GiftIdeaRow: View {
                 if let price = gift.estimatedPrice {
                     Text("\(Int(price)) kr")
                         .font(.caption)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.secondary)
                 }
 
                 if !gift.notes.isEmpty {
                     Text(gift.notes)
                         .font(.caption)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
             }
@@ -179,9 +168,9 @@ struct GiftIdeaRow: View {
             Spacer()
 
             if let urlString = gift.url, !urlString.isEmpty {
-                Image(systemName: "chevron.right")
+                Image(systemName: "link")
                     .font(.caption)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 2)
@@ -222,17 +211,14 @@ struct GiftIdeaDetailView: View {
                     // Info
                     VStack(alignment: .leading, spacing: 16) {
                         // Title + purchased
-                        HStack {
+                        HStack(alignment: .top, spacing: 8) {
                             Text(gift.title)
                                 .font(.title2.weight(.bold))
                                 .strikethrough(gift.isPurchased)
+                                .foregroundStyle(gift.isPurchased ? .secondary : .primary)
+                            Spacer(minLength: 0)
                             if gift.isPurchased {
-                                Text("Purchased")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.green)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(.green.opacity(0.12), in: Capsule())
+                                CountdownPill(title: "Purchased", accent: .green, filled: true)
                             }
                         }
 
@@ -274,11 +260,12 @@ struct GiftIdeaDetailView: View {
                 }
                 .padding(.vertical)
             }
-            .navigationTitle("Gift Idea")
+            .navigationTitle(gift.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
                 }
             }
         }

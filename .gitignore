@@ -1,0 +1,33 @@
+# Claude Code
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.claude.json
+.claude.json.backup
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+
+# CocoaPods / Carthage (if ever added)
+Pods/
+Carthage/Build/
+
+# macOS
+.DS_Store
+
+# Editor / misc
+*.swp
+*.swo
+*~

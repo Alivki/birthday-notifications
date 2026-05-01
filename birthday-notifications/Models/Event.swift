@@ -44,23 +44,36 @@ final class Event {
     }
 
     var nextOccurrenceWeekdayAndDate: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMM d"
-        return formatter.string(from: nextOccurrence)
+        Self.weekdayDateFormatter.string(from: nextOccurrence)
     }
 
     var formattedDate: String {
-        let formatter = DateFormatter()
         if let year = eventYear {
-            formatter.dateFormat = "d MMM yyyy"
             let date = Calendar.current.date(from: DateComponents(year: year, month: eventMonth, day: eventDay)) ?? Date()
-            return formatter.string(from: date)
+            return Self.dayMonthYearFormatter.string(from: date)
         } else {
-            formatter.dateFormat = "d MMM"
             let date = Calendar.current.date(from: DateComponents(year: 2000, month: eventMonth, day: eventDay)) ?? Date()
-            return formatter.string(from: date)
+            return Self.dayMonthFormatter.string(from: date)
         }
     }
+
+    private static let weekdayDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE, MMM d"
+        return f
+    }()
+
+    private static let dayMonthYearFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "d MMM yyyy"
+        return f
+    }()
+
+    private static let dayMonthFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "d MMM"
+        return f
+    }()
 
     init(
         name: String,

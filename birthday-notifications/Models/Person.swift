@@ -60,17 +60,25 @@ final class Person {
     }
 
     var formattedBirthday: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM yyyy"
         let date = Calendar.current.date(from: DateComponents(year: birthdayYear, month: birthdayMonth, day: birthdayDay)) ?? Date()
-        return formatter.string(from: date)
+        return Self.dayMonthYearFormatter.string(from: date)
     }
 
     var nextBirthdayWeekdayAndDate: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMM d"
-        return formatter.string(from: nextBirthday)
+        Self.weekdayDateFormatter.string(from: nextBirthday)
     }
+
+    private static let dayMonthYearFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "d MMM yyyy"
+        return f
+    }()
+
+    private static let weekdayDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE, MMM d"
+        return f
+    }()
 
     init(
         firstName: String,

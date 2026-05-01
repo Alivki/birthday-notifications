@@ -25,19 +25,12 @@ struct AddPersonView: View {
     @State private var rawUIImage: UIImage?
     @State private var croppedImage: UIImage?
 
-    @State private var showDatePicker = true
     @State private var showCropper = false
-    @State private var isEditingName = false
 
     @FocusState private var firstNameFocused: Bool
     @FocusState private var lastNameFocused: Bool
 
     private var currentYear: Int { Calendar.current.component(.year, from: .now) }
-
-    private var hasName: Bool {
-        !firstName.trimmingCharacters(in: .whitespaces).isEmpty ||
-        !lastName.trimmingCharacters(in: .whitespaces).isEmpty
-    }
 
     var body: some View {
         NavigationStack {
@@ -52,19 +45,10 @@ struct AddPersonView: View {
             .navigationTitle("Add Person")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .fontWeight(.semibold)
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
-                        .tint(.blue)
-                        .disabled(firstName.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+                SaveCancelToolbar(
+                    saveDisabled: firstName.trimmingCharacters(in: .whitespaces).isEmpty,
+                    onSave: save
+                )
             }
             .onChange(of: selectedPhoto) {
                 Task {
@@ -118,47 +102,14 @@ struct AddPersonView: View {
     @ViewBuilder
     private var nameSection: some View {
         Section {
-            if isEditingName {
-                TextField("First Name", text: $firstName)
-                    .focused($firstNameFocused)
-                    .onSubmit { lastNameFocused = true }
-                TextField("Last Name", text: $lastName)
-                    .focused($lastNameFocused)
-                    .onSubmit { collapseNameIfNeeded() }
-            } else if hasName {
-                Button {
-                    isEditingName = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        firstNameFocused = true
-                    }
-                } label: {
-                    HStack {
-                        Spacer()
-                        Text("\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces))
-                            .foregroundStyle(.black)
-                        Spacer()
-                    }
-                }
-            } else {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        isEditingName = true
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        firstNameFocused = true
-                    }
-                } label: {
-                    HStack {
-                        Spacer()
-                        Text("Name")
-                            .foregroundStyle(.black)
-                        Spacer()
-                    }
-                }
-            }
+            TextField("First name", text: $firstName)
+                .focused($firstNameFocused)
+                .textContentType(.givenName)
+                .onSubmit { lastNameFocused = true }
+            TextField("Last name", text: $lastName)
+                .focused($lastNameFocused)
+                .textContentType(.familyName)
         }
-        .onChange(of: firstNameFocused) { collapseNameIfNeeded() }
-        .onChange(of: lastNameFocused) { collapseNameIfNeeded() }
     }
 
     @ViewBuilder
@@ -168,8 +119,7 @@ struct AddPersonView: View {
                 GroupSelectionView(selectedGroups: $selectedGroups)
             } label: {
                 HStack {
-                    Text("Group")
-                        .foregroundStyle(.black)
+                    Text("Groups")
                     Spacer()
                     Text(groupLabel)
                         .foregroundStyle(.secondary)
@@ -181,81 +131,16 @@ struct AddPersonView: View {
     @ViewBuilder
     private var birthdaySection: some View {
         Section {
-            VStack(spacing: 12) {
-                birthdayHeader
-                if showDatePicker {
-                    birthdayPickers
-                }
-                Divider()
-                birthdayNext
-            }
-            .animation(.spring(duration: 0.4, bounce: 0.1), value: showDatePicker)
+            CollapsibleDayMonthYearPicker(
+                title: "Birthday",
+                day: $selectedDay,
+                month: $selectedMonth,
+                year: $selectedYear,
+                yearRange: 1900...currentYear,
+                nextLabel: "Next birthday",
+                nextValue: isBirthdayToday ? "Today" : "\(daysUntilBirthday) \(daysUntilBirthday == 1 ? "day" : "days")"
+            )
         }
-    }
-
-    @ViewBuilder
-    private var birthdayHeader: some View {
-        Button {
-            showDatePicker.toggle()
-        } label: {
-            HStack {
-                Text("Birthday")
-                    .foregroundStyle(.black)
-                Spacer()
-                Text(shortBirthday)
-                    .foregroundStyle(.blue)
-                Image(systemName: "chevron.down")
-                    .font(.caption2.weight(.semibold))
-                    .rotationEffect(.degrees(showDatePicker ? 0 : -90))
-                    .foregroundStyle(.blue)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var birthdayPickers: some View {
-        HStack(spacing: 0) {
-            Picker("", selection: $selectedDay) {
-                ForEach(1...daysInSelectedMonth, id: \.self) { d in
-                    Text("\(d)").tag(d)
-                }
-            }
-            .pickerStyle(.wheel)
-            .frame(maxWidth: .infinity)
-
-            Picker("", selection: $selectedMonth) {
-                ForEach(1...12, id: \.self) { m in
-                    Text(Self.monthName(m)).tag(m)
-                }
-            }
-            .pickerStyle(.wheel)
-            .frame(maxWidth: .infinity)
-
-            Picker("", selection: yearBinding) {
-                Text("---").tag(currentYear + 1)
-                ForEach(1900...currentYear, id: \.self) { y in
-                    Text(String(y)).tag(y)
-                }
-            }
-            .pickerStyle(.wheel)
-            .frame(maxWidth: .infinity)
-        }
-        .frame(height: 180)
-        .clipped()
-    }
-
-    @ViewBuilder
-    private var birthdayNext: some View {
-        HStack {
-            Text("Next")
-            Spacer()
-            if isBirthdayToday {
-                Text("🎂 Today")
-            } else {
-                Text("\(daysUntilBirthday) days")
-            }
-        }
-        .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
@@ -276,31 +161,11 @@ struct AddPersonView: View {
 
     // MARK: - Computed
 
-    private var yearBinding: Binding<Int> {
-        Binding(
-            get: { selectedYear ?? currentYear + 1 },
-            set: { selectedYear = $0 > currentYear ? nil : $0 }
-        )
-    }
-
-    private var daysInSelectedMonth: Int {
-        let yr = selectedYear ?? 2000
-        let date = Calendar.current.date(from: DateComponents(year: yr, month: selectedMonth))!
-        return Calendar.current.range(of: .day, in: .month, for: date)!.count
-    }
-
     private var isBirthdayToday: Bool {
         let cal = Calendar.current
         let today = Date()
         return cal.component(.month, from: today) == selectedMonth &&
                cal.component(.day, from: today) == selectedDay
-    }
-
-    private var shortBirthday: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM dd"
-        let date = Calendar.current.date(from: DateComponents(year: 2000, month: selectedMonth, day: selectedDay))!
-        return formatter.string(from: date)
     }
 
     private var daysUntilBirthday: Int {
@@ -317,25 +182,12 @@ struct AddPersonView: View {
     }
 
     private var groupLabel: String {
-        if selectedGroups.isEmpty { return "No" }
+        if selectedGroups.isEmpty { return "None" }
         let names = allGroups.filter { selectedGroups.contains($0.id) }.map(\.name)
         return names.joined(separator: ", ")
     }
 
-    static func monthName(_ month: Int) -> String {
-        let formatter = DateFormatter()
-        return formatter.monthSymbols[month - 1]
-    }
-
     // MARK: - Actions
-
-    private func collapseNameIfNeeded() {
-        if !firstNameFocused && !lastNameFocused && isEditingName {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                isEditingName = false
-            }
-        }
-    }
 
     private func save() {
         let person = Person(

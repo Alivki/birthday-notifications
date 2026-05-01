@@ -18,48 +18,52 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            List {
                 Section {
                     HStack {
-                        Label("People", systemImage: "person.fill")
+                        Label("People", systemImage: "person.2.fill")
                         Spacer()
                         Text("\(people.count)")
+                            .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
                     HStack {
                         Label("Events", systemImage: "calendar")
                         Spacer()
                         Text("\(events.count)")
+                            .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
                     HStack {
                         Label("Groups", systemImage: "folder.fill")
                         Spacer()
                         Text("\(groups.count)")
+                            .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
                 } header: {
-                    Text("Your Data")
+                    Text("Your data")
                 }
 
                 Section {
                     Button {
                         exportData()
                     } label: {
-                        Label("Export Backup", systemImage: "square.and.arrow.up")
+                        Label("Export backup", systemImage: "square.and.arrow.up")
                     }
 
                     Button {
                         showImportPicker = true
                     } label: {
-                        Label("Import Backup", systemImage: "square.and.arrow.down")
+                        Label("Import backup", systemImage: "square.and.arrow.down")
                     }
                 } header: {
                     Text("Backup")
                 } footer: {
-                    Text("Export creates a JSON file with all your data including photos. Import adds data without removing existing entries.")
+                    Text("Export saves everything — people, events, groups, and photos — to a single JSON file. Import merges that file into your current data; nothing existing is removed.")
                 }
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Settings")
             .sheet(isPresented: $showExportShare) {
                 if let url = exportFileURL {
@@ -82,15 +86,15 @@ struct SettingsView: View {
                     showAlert = true
                 }
             }
-            .alert("Import Backup", isPresented: $showImportConfirm) {
-                Button("Import", role: .destructive) {
+            .alert("Import backup?", isPresented: $showImportConfirm) {
+                Button("Import") {
                     if let url = pendingImportURL {
                         importData(from: url)
                     }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This will add all people, events, and groups from the backup. Existing data will not be removed.")
+                Text("People, events, and groups from this file will be added to what you already have. Nothing will be removed.")
             }
             .alert("Import", isPresented: $showAlert) {
                 Button("OK") {}

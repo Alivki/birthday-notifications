@@ -11,45 +11,37 @@ struct EventDetailView: View {
         try? modelContext.model(for: eventID) as? Event
     }
 
+    private func pills(for event: Event, daysUntil: Int) -> [DetailPill] {
+        var result: [DetailPill] = [
+            DetailPill(title: daysUntilLabel(daysUntil), accent: event.color, filled: true)
+        ]
+        if let years = event.turnsYears {
+            result.append(DetailPill(title: years == 1 ? "1 year" : "\(years) years", accent: event.color, filled: false))
+        }
+        return result
+    }
+
     var body: some View {
         if let event {
+            let daysUntil = event.daysUntilEvent
             List {
                 Section {
-                    VStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(event.color.opacity(0.15))
-                                .frame(width: 100, height: 100)
-                            Image(systemName: event.iconName)
-                                .font(.system(size: 38))
-                                .foregroundStyle(event.color)
-                        }
-
-                        Text(event.name)
-                            .font(.title2.weight(.bold))
-
-                        if let years = event.turnsYears {
-                            Text("\(years) years")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(event.color)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(event.color.opacity(0.12), in: Capsule())
-                        }
-
-                        HStack(spacing: 16) {
-                            Label(event.formattedDate, systemImage: "calendar")
-                            if event.daysUntilEvent == 0 {
-                                Text("Today!")
-                                    .fontWeight(.semibold)
-                            } else {
-                                Text("In \(event.daysUntilEvent) days")
+                    DetailHeader(
+                        title: event.name,
+                        subtitle: event.formattedDate,
+                        icon: {
+                            ZStack {
+                                Circle()
+                                    .fill(event.color.opacity(0.15))
+                                    .frame(width: 104, height: 104)
+                                Image(systemName: event.iconName)
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(event.color)
                             }
-                        }
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
+                        },
+                        chips: { EmptyView() },
+                        pills: pills(for: event, daysUntil: daysUntil)
+                    )
                 }
                 .listRowBackground(Color.clear)
 

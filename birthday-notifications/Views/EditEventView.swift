@@ -79,34 +79,14 @@ struct EditEventView: View {
                 }
 
                 Section {
-                    HStack(spacing: 0) {
-                        Picker("", selection: $selectedDay) {
-                            ForEach(1...daysInSelectedMonth, id: \.self) { d in
-                                Text("\(d)").tag(d)
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(maxWidth: .infinity)
-
-                        Picker("", selection: $selectedMonth) {
-                            ForEach(1...12, id: \.self) { m in
-                                Text(AddPersonView.monthName(m)).tag(m)
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(maxWidth: .infinity)
-
-                        Picker("", selection: yearBinding) {
-                            Text("---").tag(currentYear + 1)
-                            ForEach((currentYear - 50)...currentYear, id: \.self) { y in
-                                Text(String(y)).tag(y)
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(maxWidth: .infinity)
-                    }
-                    .frame(height: 180)
-                    .clipped()
+                    CollapsibleDayMonthYearPicker(
+                        title: "Date",
+                        day: $selectedDay,
+                        month: $selectedMonth,
+                        year: $selectedYear,
+                        yearRange: (currentYear - 50)...currentYear,
+                        initiallyExpanded: false
+                    )
                 }
 
                 Section("Notes") {
@@ -114,37 +94,15 @@ struct EditEventView: View {
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle("Edit Event")
+            .navigationTitle("Edit event")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .fontWeight(.semibold)
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
-                        .tint(.blue)
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+                SaveCancelToolbar(
+                    saveDisabled: name.trimmingCharacters(in: .whitespaces).isEmpty,
+                    onSave: save
+                )
             }
         }
-    }
-
-    private var yearBinding: Binding<Int> {
-        Binding(
-            get: { selectedYear ?? currentYear + 1 },
-            set: { selectedYear = $0 > currentYear ? nil : $0 }
-        )
-    }
-
-    private var daysInSelectedMonth: Int {
-        let yr = selectedYear ?? 2000
-        let date = Calendar.current.date(from: DateComponents(year: yr, month: selectedMonth))!
-        return Calendar.current.range(of: .day, in: .month, for: date)!.count
     }
 
     private func save() {

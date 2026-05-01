@@ -10,18 +10,24 @@ struct ToastView: View {
             if let displayedMessage, isVisible {
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.title3)
+                        .font(.subheadline)
+                        .foregroundStyle(.green)
                     Text(displayedMessage)
-                        .font(.subheadline.weight(.semibold))
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .padding(.horizontal, 16)
-                .background(.green, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-                .shadow(color: .black.opacity(0.15), radius: 10, y: 5)
+                .padding(.vertical, 12)
+                .padding(.horizontal, 18)
+                .background(
+                    Capsule()
+                        .fill(.regularMaterial)
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(.primary.opacity(0.06), lineWidth: 1)
+                )
+                .padding(.bottom, 20)
+                .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }

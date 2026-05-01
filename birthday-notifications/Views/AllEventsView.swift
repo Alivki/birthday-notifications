@@ -128,8 +128,9 @@ struct AllEventsView: View {
                     }
                 }
             }
-            .navigationTitle("All Events")
-            .searchable(text: $searchText, prompt: "Search")
+            .listStyle(.insetGrouped)
+            .navigationTitle("All")
+            .searchable(text: $searchText, prompt: "Search names and events")
             .navigationDestination(for: PersistentIdentifier.self) { id in
                 if let _ = try? modelContext.model(for: id) as? Event {
                     EventDetailView(eventID: id)
@@ -140,9 +141,9 @@ struct AllEventsView: View {
             .overlay {
                 if people.isEmpty && events.isEmpty {
                     ContentUnavailableView(
-                        "No Events Yet",
+                        "Nothing to remember yet",
                         systemImage: "calendar.badge.plus",
-                        description: Text("Tap + to add someone or an event")
+                        description: Text("Tap + to add a person or an event.")
                     )
                 }
             }

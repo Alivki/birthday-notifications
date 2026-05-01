@@ -18,12 +18,12 @@ struct GroupSelectionView: View {
                     dismiss()
                 } label: {
                     HStack {
-                        Text("No Group")
-                            .foregroundStyle(.black)
+                        Text("None")
+                            .foregroundStyle(.primary)
                         Spacer()
                         if selectedGroups.isEmpty {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(.tint)
                         }
                     }
                 }
@@ -35,16 +35,16 @@ struct GroupSelectionView: View {
                         toggle(group)
                         dismiss()
                     } label: {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 12) {
                             Circle()
                                 .fill(group.color)
-                                .frame(width: 12, height: 12)
+                                .frame(width: 14, height: 14)
                             Text(group.name)
-                                .foregroundStyle(.black)
+                                .foregroundStyle(.primary)
                             Spacer()
                             if selectedGroups.contains(group.id) {
                                 Image(systemName: "checkmark")
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(.tint)
                             }
                         }
                     }

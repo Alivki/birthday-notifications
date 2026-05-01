@@ -14,7 +14,6 @@ struct AddEventView: View {
     @State private var selectedYear: Int? = nil
     @State private var selectedIcon = "calendar"
     @State private var selectedColor: Color = .blue
-    @State private var showDatePicker = true
 
     @FocusState private var nameFocused: Bool
 
@@ -33,19 +32,10 @@ struct AddEventView: View {
             .navigationTitle("Add Event")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .fontWeight(.semibold)
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
-                        .tint(.blue)
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+                SaveCancelToolbar(
+                    saveDisabled: name.trimmingCharacters(in: .whitespaces).isEmpty,
+                    onSave: save
+                )
             }
         }
     }
@@ -74,7 +64,7 @@ struct AddEventView: View {
     @ViewBuilder
     private var nameSection: some View {
         Section {
-            TextField("Event Name", text: $name)
+            TextField("Event name", text: $name)
                 .focused($nameFocused)
         }
     }
@@ -117,69 +107,15 @@ struct AddEventView: View {
     @ViewBuilder
     private var dateSection: some View {
         Section {
-            VStack(spacing: 12) {
-                Button {
-                    showDatePicker.toggle()
-                } label: {
-                    HStack {
-                        Text("Date")
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Text(shortDate)
-                            .foregroundStyle(.blue)
-                        Image(systemName: "chevron.down")
-                            .font(.caption2.weight(.semibold))
-                            .rotationEffect(.degrees(showDatePicker ? 0 : -90))
-                            .foregroundStyle(.blue)
-                    }
-                }
-                .buttonStyle(.plain)
-
-                if showDatePicker {
-                    HStack(spacing: 0) {
-                        Picker("", selection: $selectedDay) {
-                            ForEach(1...daysInSelectedMonth, id: \.self) { d in
-                                Text("\(d)").tag(d)
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(maxWidth: .infinity)
-
-                        Picker("", selection: $selectedMonth) {
-                            ForEach(1...12, id: \.self) { m in
-                                Text(AddPersonView.monthName(m)).tag(m)
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(maxWidth: .infinity)
-
-                        Picker("", selection: yearBinding) {
-                            Text("---").tag(currentYear + 1)
-                            ForEach((currentYear - 50)...currentYear, id: \.self) { y in
-                                Text(String(y)).tag(y)
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(maxWidth: .infinity)
-                    }
-                    .frame(height: 180)
-                    .clipped()
-                }
-
-                Divider()
-
-                HStack {
-                    Text("Next")
-                    Spacer()
-                    if daysUntilEvent == 0 {
-                        Text("Today!")
-                    } else {
-                        Text("\(daysUntilEvent) days")
-                    }
-                }
-                .foregroundStyle(.secondary)
-            }
-            .animation(.spring(duration: 0.4, bounce: 0.1), value: showDatePicker)
+            CollapsibleDayMonthYearPicker(
+                title: "Date",
+                day: $selectedDay,
+                month: $selectedMonth,
+                year: $selectedYear,
+                yearRange: (currentYear - 50)...currentYear,
+                nextLabel: "Next",
+                nextValue: daysUntilEvent == 0 ? "Today" : "\(daysUntilEvent) \(daysUntilEvent == 1 ? "day" : "days")"
+            )
         }
     }
 
@@ -192,32 +128,6 @@ struct AddEventView: View {
     }
 
     // MARK: - Computed
-
-    private var yearBinding: Binding<Int> {
-        Binding(
-            get: { selectedYear ?? currentYear + 1 },
-            set: { selectedYear = $0 > currentYear ? nil : $0 }
-        )
-    }
-
-    private var daysInSelectedMonth: Int {
-        let yr = selectedYear ?? 2000
-        let date = Calendar.current.date(from: DateComponents(year: yr, month: selectedMonth))!
-        return Calendar.current.range(of: .day, in: .month, for: date)!.count
-    }
-
-    private var shortDate: String {
-        let formatter = DateFormatter()
-        if let year = selectedYear {
-            formatter.dateFormat = "MMM dd, yyyy"
-            let date = Calendar.current.date(from: DateComponents(year: year, month: selectedMonth, day: selectedDay))!
-            return formatter.string(from: date)
-        } else {
-            formatter.dateFormat = "MMM dd"
-            let date = Calendar.current.date(from: DateComponents(year: 2000, month: selectedMonth, day: selectedDay))!
-            return formatter.string(from: date)
-        }
-    }
 
     private var daysUntilEvent: Int {
         let cal = Calendar.current

@@ -13,19 +13,25 @@ struct GroupsTabView: View {
             List {
                 ForEach(groups) { group in
                     NavigationLink(value: group.persistentModelID) {
-                        HStack(spacing: 12) {
-                            Circle()
-                                .fill(group.color)
-                                .frame(width: 14, height: 14)
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(group.color.opacity(0.18))
+                                    .frame(width: 36, height: 36)
+                                Circle()
+                                    .fill(group.color)
+                                    .frame(width: 14, height: 14)
+                            }
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(group.name)
-                                    .font(.body.weight(.medium))
-                                Text("\(group.members.count) people")
-                                    .font(.caption)
+                                    .font(.body.weight(.semibold))
+                                Text("^[\(group.members.count) person](inflect: true)")
+                                    .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
                         }
+                        .padding(.vertical, 2)
                     }
                 }
                 .onDelete { offsets in
@@ -34,6 +40,7 @@ struct GroupsTabView: View {
                     }
                 }
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Groups")
             .navigationDestination(for: PersistentIdentifier.self) { id in
                 GroupDetailView(groupID: id)
@@ -41,9 +48,9 @@ struct GroupsTabView: View {
             .overlay {
                 if groups.isEmpty {
                     ContentUnavailableView(
-                        "No Groups Yet",
+                        "No groups yet",
                         systemImage: "folder.badge.plus",
-                        description: Text("Tap + to create a group")
+                        description: Text("Group people by family, friends, or anything else.")
                     )
                 }
             }
@@ -89,19 +96,9 @@ struct GroupDetailView: View {
     var body: some View {
         if let group {
             List {
-                Section {
-                    HStack(spacing: 12) {
-                        Circle()
-                            .fill(group.color)
-                            .frame(width: 20, height: 20)
-                        Text(group.name)
-                            .font(.title3.weight(.semibold))
-                    }
-                }
-
-                Section("Members (\(group.members.count))") {
+                Section("^[\(group.members.count) member](inflect: true)") {
                     if group.members.isEmpty {
-                        Text("No members yet")
+                        Text("No one in this group yet")
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(group.members) { person in
@@ -157,22 +154,13 @@ struct AddGroupSheet: View {
                     ColorPicker("Color", selection: $color, supportsOpacity: false)
                 }
             }
-            .navigationTitle("New Group")
+            .navigationTitle("New group")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { onSave() }
-                        .fontWeight(.semibold)
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
-                        .tint(.blue)
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+                SaveCancelToolbar(
+                    saveDisabled: name.trimmingCharacters(in: .whitespaces).isEmpty,
+                    onSave: onSave
+                )
             }
         }
     }
@@ -203,25 +191,15 @@ struct EditGroupSheet: View {
                     ColorPicker("Color", selection: $selectedColor, supportsOpacity: false)
                 }
             }
-            .navigationTitle("Edit Group")
+            .navigationTitle("Edit group")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        group.name = name
-                        group.colorHex = selectedColor.toHex()
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
-                    .buttonStyle(.borderedProminent)
-                    .buttonBorderShape(.capsule)
-                    .tint(.blue)
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                SaveCancelToolbar(
+                    saveDisabled: name.trimmingCharacters(in: .whitespaces).isEmpty
+                ) {
+                    group.name = name
+                    group.colorHex = selectedColor.toHex()
+                    dismiss()
                 }
             }
         }

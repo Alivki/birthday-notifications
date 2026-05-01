@@ -24,7 +24,6 @@ struct EditPersonView: View {
     @State private var rawUIImage: UIImage?
     @State private var croppedImage: UIImage?
     @State private var showCropper = false
-    @State private var showDatePicker = false
 
     private var currentYear: Int { Calendar.current.component(.year, from: .now) }
 
@@ -64,8 +63,10 @@ struct EditPersonView: View {
 
                 // Name
                 Section {
-                    TextField("First Name", text: $firstName)
-                    TextField("Last Name", text: $lastName)
+                    TextField("First name", text: $firstName)
+                        .textContentType(.givenName)
+                    TextField("Last name", text: $lastName)
+                        .textContentType(.familyName)
                 }
 
                 // Group
@@ -74,9 +75,9 @@ struct EditPersonView: View {
                         GroupSelectionView(selectedGroups: $selectedGroups)
                     } label: {
                         HStack {
-                            Text("Group")
+                            Text("Groups")
                             Spacer()
-                            Text(selectedGroups.isEmpty ? "No" : groupNames)
+                            Text(selectedGroups.isEmpty ? "None" : groupNames)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -84,57 +85,14 @@ struct EditPersonView: View {
 
                 // Birthday
                 Section {
-                    VStack(spacing: 12) {
-                        Button {
-                            withAnimation(.spring(duration: 0.4, bounce: 0.1)) {
-                                showDatePicker.toggle()
-                            }
-                        } label: {
-                            HStack {
-                                Text("Birthday")
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                Text(shortBirthday)
-                                    .foregroundStyle(.blue)
-                                Image(systemName: "chevron.down")
-                                    .font(.caption2.weight(.semibold))
-                                    .rotationEffect(.degrees(showDatePicker ? 0 : -90))
-                                    .foregroundStyle(.blue)
-                            }
-                        }
-
-                        if showDatePicker {
-                            HStack(spacing: 0) {
-                                Picker("", selection: $selectedDay) {
-                                    ForEach(1...daysInMonth, id: \.self) { d in
-                                        Text("\(d)").tag(d)
-                                    }
-                                }
-                                .pickerStyle(.wheel)
-                                .frame(maxWidth: .infinity)
-
-                                Picker("", selection: $selectedMonth) {
-                                    ForEach(1...12, id: \.self) { m in
-                                        Text(AddPersonView.monthName(m)).tag(m)
-                                    }
-                                }
-                                .pickerStyle(.wheel)
-                                .frame(maxWidth: .infinity)
-
-                                Picker("", selection: yearBinding) {
-                                    Text("---").tag(currentYear + 1)
-                                    ForEach(1900...currentYear, id: \.self) { y in
-                                        Text(String(y)).tag(y)
-                                    }
-                                }
-                                .pickerStyle(.wheel)
-                                .frame(maxWidth: .infinity)
-                            }
-                            .frame(height: 180)
-                            .clipped()
-                        }
-                    }
-                    .animation(.spring(duration: 0.4, bounce: 0.1), value: showDatePicker)
+                    CollapsibleDayMonthYearPicker(
+                        title: "Birthday",
+                        day: $selectedDay,
+                        month: $selectedMonth,
+                        year: $selectedYear,
+                        yearRange: 1900...currentYear,
+                        initiallyExpanded: false
+                    )
                 }
 
                 // Notifications
@@ -149,22 +107,13 @@ struct EditPersonView: View {
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle("Edit")
+            .navigationTitle("Edit person")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .fontWeight(.semibold)
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
-                        .tint(.blue)
-                        .disabled(firstName.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+                SaveCancelToolbar(
+                    saveDisabled: firstName.trimmingCharacters(in: .whitespaces).isEmpty,
+                    onSave: save
+                )
             }
             .onChange(of: selectedPhoto) {
                 Task {
@@ -186,26 +135,6 @@ struct EditPersonView: View {
     }
 
     // MARK: - Computed
-
-    private var yearBinding: Binding<Int> {
-        Binding(
-            get: { selectedYear ?? currentYear + 1 },
-            set: { selectedYear = $0 > currentYear ? nil : $0 }
-        )
-    }
-
-    private var daysInMonth: Int {
-        let yr = selectedYear ?? 2000
-        let date = Calendar.current.date(from: DateComponents(year: yr, month: selectedMonth))!
-        return Calendar.current.range(of: .day, in: .month, for: date)!.count
-    }
-
-    private var shortBirthday: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM dd"
-        let date = Calendar.current.date(from: DateComponents(year: 2000, month: selectedMonth, day: selectedDay))!
-        return formatter.string(from: date)
-    }
 
     private var groupNames: String {
         allGroups.filter { selectedGroups.contains($0.id) }.map(\.name).joined(separator: ", ")
