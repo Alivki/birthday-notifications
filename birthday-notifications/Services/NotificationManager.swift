@@ -18,116 +18,161 @@ final class NotificationManager {
 
         for person in people {
             if person.notifyOnDay {
-                scheduleDayOf(person: person, center: center)
+                scheduleBirthdayDayOf(person: person, center: center)
             }
             if person.notifyOneWeekBefore {
-                scheduleOneWeekBefore(person: person, center: center)
+                scheduleBirthdayWeekBefore(person: person, center: center)
             }
         }
 
         for event in events {
             scheduleEventDayOf(event: event, center: center)
-            scheduleEventOneWeekBefore(event: event, center: center)
+            scheduleEventWeekBefore(event: event, center: center)
         }
     }
 
-    private func scheduleDayOf(person: Person, center: UNUserNotificationCenter) {
+    // MARK: - Person notifications
+
+    private func scheduleBirthdayDayOf(person: Person, center: UNUserNotificationCenter) {
+        guard let birthday = nextOccurrence(month: person.birthdayMonth, day: person.birthdayDay) else { return }
+
         let content = UNMutableNotificationContent()
-        content.title = "Birthday Today!"
-        content.body = "\(person.fullName) turns \(person.turnsAge) today!"
+        content.title = "🎂 \(person.displayName)'s birthday"
+        content.subtitle = "Turning \(person.turnsAge) today"
+        content.body = personBodyExtras(person)
         content.sound = .default
+        content.threadIdentifier = threadID(for: person)
 
-        var comps = DateComponents()
-        comps.month = person.birthdayMonth
-        comps.day = person.birthdayDay
-        comps.hour = 6
-        comps.minute = 30
-        comps.timeZone = TimeZone(identifier: "Europe/Oslo")
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: true)
+        let trigger = calendarTrigger(for: birthday, hour: 6, minute: 30)
         let id = "birthday-day-\(person.persistentModelID.hashValue)"
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
-    private func scheduleOneWeekBefore(person: Person, center: UNUserNotificationCenter) {
-        let cal = Calendar.current
-        let thisYear = cal.component(.year, from: Date())
-        guard let birthdayThisYear = cal.date(from: DateComponents(
-            year: thisYear, month: person.birthdayMonth, day: person.birthdayDay
-        )) else { return }
-
-        let birthday = birthdayThisYear >= cal.startOfDay(for: Date())
-            ? birthdayThisYear
-            : cal.date(from: DateComponents(
-                year: thisYear + 1, month: person.birthdayMonth, day: person.birthdayDay
-            )) ?? birthdayThisYear
-
-        guard let weekBefore = cal.date(byAdding: .day, value: -7, to: birthday) else { return }
-        guard weekBefore > Date() else { return }
+    private func scheduleBirthdayWeekBefore(person: Person, center: UNUserNotificationCenter) {
+        guard let birthday = nextOccurrence(month: person.birthdayMonth, day: person.birthdayDay),
+              let weekBefore = Calendar.current.date(byAdding: .day, value: -7, to: birthday),
+              weekBefore > Date() else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "Birthday in 1 week"
-        content.body = "\(person.fullName) turns \(person.turnsAge) next week!"
+        let firstName = personFirstName(person)
+        content.title = "🎁 \(firstName)'s birthday in 1 week"
+        content.subtitle = "Turning \(person.turnsAge) on \(Self.weekdayDateFormatter.string(from: birthday))"
+        content.body = personBodyExtras(person, fallback: "Time to plan something special.")
         content.sound = .default
+        content.threadIdentifier = threadID(for: person)
 
-        var comps = cal.dateComponents([.year, .month, .day], from: weekBefore)
-        comps.hour = 8
-        comps.minute = 0
-        comps.timeZone = TimeZone(identifier: "Europe/Oslo")
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+        let trigger = calendarTrigger(for: weekBefore, hour: 8, minute: 0)
         let id = "birthday-week-\(person.persistentModelID.hashValue)"
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
-    // MARK: - Event Notifications
+    // MARK: - Event notifications
 
     private func scheduleEventDayOf(event: Event, center: UNUserNotificationCenter) {
+        guard let occurrence = nextOccurrence(month: event.eventMonth, day: event.eventDay) else { return }
+
         let content = UNMutableNotificationContent()
-        content.title = "\(event.name) Today!"
-        content.body = "\(event.name) is today!"
+        if let years = event.turnsYears {
+            content.title = "🎉 \(event.name) · \(yearsLabel(years))"
+        } else {
+            content.title = "🗓 \(event.name) today"
+        }
+        content.subtitle = Self.weekdayDateFormatter.string(from: occurrence)
+        content.body = event.notes.isEmpty ? "Today's the day." : event.notes
         content.sound = .default
+        content.threadIdentifier = threadID(for: event)
 
-        var comps = DateComponents()
-        comps.month = event.eventMonth
-        comps.day = event.eventDay
-        comps.hour = 6
-        comps.minute = 30
-        comps.timeZone = TimeZone(identifier: "Europe/Oslo")
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: true)
+        let trigger = calendarTrigger(for: occurrence, hour: 6, minute: 30)
         let id = "event-day-\(event.persistentModelID.hashValue)"
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
-    private func scheduleEventOneWeekBefore(event: Event, center: UNUserNotificationCenter) {
-        let cal = Calendar.current
-        let thisYear = cal.component(.year, from: Date())
-        guard let eventThisYear = cal.date(from: DateComponents(
-            year: thisYear, month: event.eventMonth, day: event.eventDay
-        )) else { return }
-
-        let eventDate = eventThisYear >= cal.startOfDay(for: Date())
-            ? eventThisYear
-            : cal.date(from: DateComponents(
-                year: thisYear + 1, month: event.eventMonth, day: event.eventDay
-            )) ?? eventThisYear
-
-        guard let weekBefore = cal.date(byAdding: .day, value: -7, to: eventDate) else { return }
-        guard weekBefore > Date() else { return }
+    private func scheduleEventWeekBefore(event: Event, center: UNUserNotificationCenter) {
+        guard let occurrence = nextOccurrence(month: event.eventMonth, day: event.eventDay),
+              let weekBefore = Calendar.current.date(byAdding: .day, value: -7, to: occurrence),
+              weekBefore > Date() else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "\(event.name) in 1 week"
-        content.body = "\(event.name) is next week!"
+        content.title = "🗓 \(event.name) in 1 week"
+        let dayString = Self.weekdayDateFormatter.string(from: occurrence)
+        if let years = event.turnsYears {
+            content.subtitle = "\(yearsLabel(years)) on \(dayString)"
+        } else {
+            content.subtitle = dayString
+        }
+        content.body = event.notes.isEmpty ? "Coming up next week." : event.notes
         content.sound = .default
+        content.threadIdentifier = threadID(for: event)
 
-        var comps = cal.dateComponents([.year, .month, .day], from: weekBefore)
-        comps.hour = 8
-        comps.minute = 0
-        comps.timeZone = TimeZone(identifier: "Europe/Oslo")
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+        let trigger = calendarTrigger(for: weekBefore, hour: 8, minute: 0)
         let id = "event-week-\(event.persistentModelID.hashValue)"
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
+
+    // MARK: - Content builders
+
+    private func personBodyExtras(_ person: Person, fallback: String = "") -> String {
+        var parts: [String] = []
+        if !person.groups.isEmpty {
+            parts.append(person.groups.map(\.name).joined(separator: ", "))
+        }
+        if !person.giftIdeas.isEmpty {
+            let n = person.giftIdeas.count
+            parts.append(n == 1 ? "1 gift idea saved" : "\(n) gift ideas saved")
+        }
+        if parts.isEmpty { return fallback }
+        return parts.joined(separator: " · ")
+    }
+
+    private func personFirstName(_ person: Person) -> String {
+        let trimmed = person.firstName.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? person.displayName : trimmed
+    }
+
+    private func yearsLabel(_ years: Int) -> String {
+        years == 1 ? "1 year" : "\(years) years"
+    }
+
+    private func threadID(for person: Person) -> String {
+        "person-\(person.persistentModelID.hashValue)"
+    }
+
+    private func threadID(for event: Event) -> String {
+        "event-\(event.persistentModelID.hashValue)"
+    }
+
+    // MARK: - Date helpers
+
+    /// Next occurrence (this year if not yet passed, otherwise next year).
+    private func nextOccurrence(month: Int, day: Int) -> Date? {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let thisYear = cal.component(.year, from: today)
+
+        var comps = DateComponents(year: thisYear, month: month, day: day)
+        if let candidate = cal.date(from: comps), candidate >= today {
+            return candidate
+        }
+        comps.year = thisYear + 1
+        return cal.date(from: comps)
+    }
+
+    /// Calendar trigger for a specific date at a given local time. Non-repeating —
+    /// the app reschedules whenever it launches or data changes, which keeps
+    /// rich content (age, group names, gift counts) fresh year to year.
+    private func calendarTrigger(for date: Date, hour: Int, minute: Int) -> UNCalendarNotificationTrigger {
+        var comps = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        comps.hour = hour
+        comps.minute = minute
+        comps.timeZone = Self.timezone
+        return UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+    }
+
+    private static let timezone = TimeZone(identifier: "Europe/Oslo")
+
+    private static let weekdayDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE, MMM d"
+        return f
+    }()
 }

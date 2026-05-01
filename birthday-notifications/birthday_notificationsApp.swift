@@ -40,10 +40,23 @@ struct RootView: View {
     @Query private var people: [Person]
     @Query private var events: [Event]
 
+    /// Hash of every field that ends up rendered in a scheduled notification.
+    /// Whenever this changes we reschedule, so edits to a birthday date,
+    /// nickname, group membership, gift idea count, etc. are reflected
+    /// without waiting for a relaunch.
     private var notificationHash: Int {
         var h = people.count ^ events.count
         for p in people {
             h ^= p.notifyOnDay.hashValue &+ p.notifyOneWeekBefore.hashValue
+            h ^= p.birthdayDay.hashValue &+ p.birthdayMonth.hashValue
+            h ^= p.firstName.hashValue &+ p.lastName.hashValue &+ p.nickname.hashValue
+            h ^= p.giftIdeas.count.hashValue
+            for g in p.groups { h ^= g.name.hashValue }
+        }
+        for e in events {
+            h ^= e.eventDay.hashValue &+ e.eventMonth.hashValue
+            h ^= e.name.hashValue &+ e.notes.hashValue
+            if let y = e.eventYear { h ^= y.hashValue }
         }
         return h
     }
