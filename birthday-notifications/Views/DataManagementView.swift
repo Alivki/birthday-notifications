@@ -8,8 +8,7 @@ struct SettingsView: View {
     @Query private var events: [Event]
     @Query private var groups: [PersonGroup]
 
-    @State private var showExportShare = false
-    @State private var exportFileURL: URL?
+    @State private var exportFile: ExportFile?
     @State private var showImportPicker = false
     @State private var alertMessage = ""
     @State private var showAlert = false
@@ -67,10 +66,8 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .background(Theme.surface)
             .navigationTitle("Settings")
-            .sheet(isPresented: $showExportShare) {
-                if let url = exportFileURL {
-                    ShareSheet(activityItems: [url])
-                }
+            .sheet(item: $exportFile) { file in
+                ShareSheet(activityItems: [file.url])
             }
             .fileImporter(
                 isPresented: $showImportPicker,
@@ -120,9 +117,13 @@ struct SettingsView: View {
 
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         do {
+            // Overwrite any previous export at this path so the share sheet
+            // doesn't pick up stale data.
+            if FileManager.default.fileExists(atPath: tempURL.path) {
+                try? FileManager.default.removeItem(at: tempURL)
+            }
             try data.write(to: tempURL)
-            exportFileURL = tempURL
-            showExportShare = true
+            exportFile = ExportFile(url: tempURL)
         } catch {
             alertMessage = "Failed to save backup file."
             showAlert = true
@@ -147,6 +148,11 @@ struct SettingsView: View {
             showAlert = true
         }
     }
+}
+
+struct ExportFile: Identifiable {
+    let id = UUID()
+    let url: URL
 }
 
 struct ShareSheet: UIViewControllerRepresentable {
