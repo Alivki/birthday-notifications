@@ -40,7 +40,7 @@ struct HomeView: View {
         Section {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
-                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .font(.system(.title3).weight(.bold))
                     .foregroundStyle(.primary)
                 Text("\(count)")
                     .font(.subheadline.weight(.semibold))
@@ -250,7 +250,7 @@ struct PersonRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(person.displayName)
-                    .font(.system(.body, design: .rounded).weight(.semibold))
+                    .font(.system(.body).weight(.semibold))
                     .lineLimit(1)
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -296,7 +296,7 @@ struct EventRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(event.name)
-                    .font(.system(.body, design: .rounded).weight(.semibold))
+                    .font(.system(.body).weight(.semibold))
                     .lineLimit(1)
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -348,7 +348,7 @@ struct DaysBadge: View {
         } else if days <= 7 {
             VStack(spacing: -1) {
                 Text("\(days)")
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .font(.system(size: 22, weight: .heavy))
                     .monospacedDigit()
                     .foregroundStyle(Theme.celebration)
                 Text(days == 1 ? "day" : "days")
@@ -363,7 +363,7 @@ struct DaysBadge: View {
         } else {
             HStack(spacing: 3) {
                 Text("\(days)")
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .font(.system(.subheadline).weight(.semibold))
                     .monospacedDigit()
                 Text("d")
                     .font(.subheadline.weight(.medium))
@@ -460,7 +460,7 @@ struct HeroCard: View {
 
             HStack(alignment: .lastTextBaseline, spacing: 10) {
                 Text("\(count)")
-                    .font(.system(size: 72, weight: .heavy, design: .rounded))
+                    .font(.system(size: 72, weight: .heavy))
                     .contentTransition(.numericText())
                     .monospacedDigit()
                     .foregroundStyle(Theme.brandDeep)
@@ -468,7 +468,7 @@ struct HeroCard: View {
                     .minimumScaleFactor(0.6)
 
                 Text(count == 1 ? "thing to remember" : "things to remember")
-                    .font(.system(.title3, design: .rounded).weight(.semibold))
+                    .font(.system(.title3).weight(.semibold))
                     .foregroundStyle(Theme.brandDeep)
                     .padding(.bottom, 8)
             }
@@ -507,7 +507,7 @@ struct TodayCard: View {
                 ForEach(items.indices, id: \.self) { i in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(items[i].title)
-                            .font(.system(.title3, design: .rounded).weight(.bold))
+                            .font(.system(.title3).weight(.bold))
                             .foregroundStyle(.primary)
                         Text(items[i].subtitle)
                             .font(.subheadline)
@@ -697,6 +697,58 @@ struct GroupChip: View {
     }
 }
 
+// MARK: - Stat block
+
+struct StatBlock: View {
+    let primaryValue: String
+    let primaryLabel: String
+    let primaryColor: Color
+    var primaryIsCompact: Bool = false
+    let secondaryTitle: String
+    let secondaryDetail: String
+    var tinted: Bool = false
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 18) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(primaryValue)
+                    .font(.system(size: primaryIsCompact ? 36 : 52, weight: .black))
+                    .tracking(primaryIsCompact ? 1 : -0.5)
+                    .monospacedDigit()
+                    .foregroundStyle(primaryColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                Text(primaryLabel)
+                    .font(.caption2.weight(.bold))
+                    .tracking(1.2)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+
+            Rectangle()
+                .fill(Color.black.opacity(0.07))
+                .frame(width: 1, height: 56)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(secondaryTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(secondaryDetail)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
+                .fill(tinted ? Theme.celebrationSoft : Theme.card)
+        )
+        .cardShadow()
+    }
+}
+
 // MARK: - Detail header
 
 struct DetailPill: Identifiable {
@@ -721,7 +773,7 @@ struct DetailHeader<Icon: View, Chips: View>: View {
 
             VStack(spacing: 4) {
                 Text(title)
-                    .font(.system(.title, design: .rounded).weight(.bold))
+                    .font(.system(.title).weight(.bold))
                     .multilineTextAlignment(.center)
 
                 Text(subtitle)

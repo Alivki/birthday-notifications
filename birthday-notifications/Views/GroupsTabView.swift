@@ -25,7 +25,7 @@ struct GroupsTabView: View {
 
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(group.name)
-                                    .font(.system(.body, design: .rounded).weight(.semibold))
+                                    .font(.system(.body).weight(.semibold))
                                     .foregroundStyle(.primary)
                                 Text("^[\(group.members.count) person](inflect: true)")
                                     .font(.subheadline)
@@ -118,7 +118,7 @@ struct GroupDetailView: View {
                 Section {
                     HStack(alignment: .firstTextBaseline) {
                         Text("^[\(group.members.count) member](inflect: true)")
-                            .font(.system(.title3, design: .rounded).weight(.bold))
+                            .font(.system(.title3).weight(.bold))
                             .foregroundStyle(.primary)
                         Spacer()
                     }

@@ -109,7 +109,7 @@ struct AllEventsView: View {
                     Section {
                         HStack(alignment: .firstTextBaseline) {
                             Text(section.name)
-                                .font(.system(.title3, design: .rounded).weight(.bold))
+                                .font(.system(.title3).weight(.bold))
                                 .foregroundStyle(.primary)
                             Text("\(section.people.count + section.events.count)")
                                 .font(.subheadline.weight(.semibold))

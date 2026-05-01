@@ -24,14 +24,14 @@ struct PersonDetailView: View {
                 // Header — asymmetric identity row + hero countdown + chips.
                 // Single left-aligned column establishes the screen's spine.
                 Section {
-                    VStack(alignment: .leading, spacing: 24) {
-                        // Identity: photo on the left, name + meta to the right.
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Identity: photo + name + meta
                         HStack(spacing: 16) {
                             PersonPhoto(person: person, size: 76)
 
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(person.fullName)
-                                    .font(.system(.title2, design: .rounded).weight(.bold))
+                                    .font(.title2.weight(.bold))
                                     .lineLimit(2)
                                 if nicknameDistinct {
                                     Text("\u{201C}\(person.nickname)\u{201D}")
@@ -39,42 +39,27 @@ struct PersonDetailView: View {
                                         .foregroundStyle(Theme.brand)
                                 }
                                 Text(person.formattedBirthday)
-                                    .font(.subheadline)
+                                    .font(.footnote.weight(.medium))
                                     .foregroundStyle(Theme.textSecondary)
                             }
 
                             Spacer(minLength: 0)
                         }
 
-                        // Countdown — the hero metric of the screen.
-                        VStack(alignment: .leading, spacing: 4) {
-                            if daysUntil == 0 {
-                                Text("Today")
-                                    .font(.system(size: 64, weight: .heavy, design: .rounded))
-                                    .foregroundStyle(Theme.celebration)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.7)
-                            } else {
-                                HStack(alignment: .lastTextBaseline, spacing: 8) {
-                                    Text("\(daysUntil)")
-                                        .font(.system(size: 64, weight: .heavy, design: .rounded))
-                                        .monospacedDigit()
-                                        .foregroundStyle(countdownColor)
-                                    Text(daysUntil == 1 ? "day" : "days")
-                                        .font(.system(.title2, design: .rounded).weight(.semibold))
-                                        .foregroundStyle(Theme.textSecondary)
-                                }
-                            }
-                            Text(daysUntil == 0
-                                ? "\(person.firstName.isEmpty ? "They turn" : "\(person.firstName) turns") \(person.turnsAge) today"
-                                : "until \(person.firstName.isEmpty ? "they turn" : "\(person.firstName) turns") \(person.turnsAge)"
-                            )
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(Theme.textSecondary)
-                        }
+                        // Stat block — big anchor stat on the left, supporting
+                        // info on the right, separated by a hairline divider.
+                        StatBlock(
+                            primaryValue: daysUntil == 0 ? "TODAY" : "\(daysUntil)",
+                            primaryLabel: daysUntil == 0 ? "BIRTHDAY" : "DAYS LEFT",
+                            primaryColor: daysUntil == 0 || daysUntil <= 7 ? Theme.celebration : Theme.brand,
+                            primaryIsCompact: daysUntil == 0,
+                            secondaryTitle: "Turning \(person.turnsAge)",
+                            secondaryDetail: person.nextBirthdayWeekdayAndDate,
+                            tinted: daysUntil == 0
+                        )
 
-                        // Group chips — tucked under the metric, left-aligned
-                        // so they read as context rather than a separate row.
+                        // Group chips — tucked under the stat block, left-
+                        // aligned so they read as context rather than a row.
                         if !person.groups.isEmpty {
                             HStack(spacing: 6) {
                                 ForEach(person.groups) { group in
@@ -86,7 +71,7 @@ struct PersonDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
-                    .padding(.bottom, 28)
+                    .padding(.bottom, 24)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -215,7 +200,7 @@ struct PersonDetailView: View {
     private func sectionTitle(_ title: String) -> some View {
         Section {
             Text(title)
-                .font(.system(.title3, design: .rounded).weight(.bold))
+                .font(.system(.title3).weight(.bold))
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
                 .padding(.bottom, 4)

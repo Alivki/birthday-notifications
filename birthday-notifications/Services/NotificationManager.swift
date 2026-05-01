@@ -42,6 +42,7 @@ final class NotificationManager {
         content.body = personBodyExtras(person)
         content.sound = .default
         content.threadIdentifier = threadID(for: person)
+        attachPhoto(person, to: content)
 
         let trigger = calendarTrigger(for: birthday, hour: 6, minute: 30)
         let id = "birthday-day-\(person.persistentModelID.hashValue)"
@@ -60,10 +61,28 @@ final class NotificationManager {
         content.body = personBodyExtras(person, fallback: "Time to plan something special.")
         content.sound = .default
         content.threadIdentifier = threadID(for: person)
+        attachPhoto(person, to: content)
 
         let trigger = calendarTrigger(for: weekBefore, hour: 8, minute: 0)
         let id = "birthday-week-\(person.persistentModelID.hashValue)"
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+    }
+
+    /// Writes the person's photo to a temp file and adds it as an attachment.
+    /// `UNUserNotificationCenter.add` copies the file into its own sandbox, so
+    /// the temp file doesn't need explicit cleanup beyond what iOS already
+    /// does for the temporary directory.
+    private func attachPhoto(_ person: Person, to content: UNMutableNotificationContent) {
+        guard let data = person.photoData else { return }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("notif-\(UUID().uuidString).jpg")
+        do {
+            try data.write(to: url)
+            let attachment = try UNNotificationAttachment(identifier: "photo", url: url, options: nil)
+            content.attachments = [attachment]
+        } catch {
+            // Silently skip — notification still fires without the photo.
+        }
     }
 
     // MARK: - Event notifications

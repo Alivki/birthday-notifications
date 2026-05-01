@@ -51,6 +51,7 @@ struct RootView: View {
             h ^= p.birthdayDay.hashValue &+ p.birthdayMonth.hashValue
             h ^= p.firstName.hashValue &+ p.lastName.hashValue &+ p.nickname.hashValue
             h ^= p.giftIdeas.count.hashValue
+            h ^= (p.photoData?.count ?? 0).hashValue
             for g in p.groups { h ^= g.name.hashValue }
         }
         for e in events {

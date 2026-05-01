@@ -15,58 +15,56 @@ struct EventDetailView: View {
     var body: some View {
         if let event {
             let daysUntil = event.daysUntilEvent
+            let secondaryTitle: String = {
+                if let years = event.turnsYears {
+                    return years == 1 ? "1 year anniversary" : "\(years) year anniversary"
+                }
+                return event.formattedDate
+            }()
+            let secondaryDetail: String = event.turnsYears != nil
+                ? event.nextOccurrenceWeekdayAndDate
+                : event.nextOccurrenceWeekdayAndDate
+
             List {
                 Section {
-                    VStack(spacing: 16) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                                .fill(event.color.opacity(0.18))
-                                .frame(width: 112, height: 112)
-                            Image(systemName: event.iconName)
-                                .font(.system(size: 46, weight: .medium))
-                                .foregroundStyle(event.color)
-                        }
-
-                        VStack(spacing: 4) {
-                            Text(event.name)
-                                .font(.system(.title, design: .rounded).weight(.bold))
-                                .multilineTextAlignment(.center)
-
-                            Text(event.formattedDate)
-                                .font(.subheadline)
-                                .foregroundStyle(Theme.textSecondary)
-                        }
-
-                        VStack(spacing: 2) {
-                            if daysUntil == 0 {
-                                Text("Today")
-                                    .font(.system(size: 40, weight: .heavy, design: .rounded))
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Identity row: icon + name
+                        HStack(spacing: 16) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(event.color.opacity(0.18))
+                                    .frame(width: 76, height: 76)
+                                Image(systemName: event.iconName)
+                                    .font(.system(size: 32, weight: .medium))
                                     .foregroundStyle(event.color)
-                            } else {
-                                HStack(alignment: .lastTextBaseline, spacing: 6) {
-                                    Text("\(daysUntil)")
-                                        .font(.system(size: 40, weight: .heavy, design: .rounded))
-                                        .monospacedDigit()
-                                        .foregroundStyle(daysUntil <= 7 ? Theme.celebration : event.color)
-                                    Text(daysUntil == 1 ? "day" : "days")
-                                        .font(.system(.title3, design: .rounded).weight(.semibold))
-                                        .foregroundStyle(Theme.textSecondary)
-                                }
                             }
-                            if let years = event.turnsYears {
-                                Text(years == 1 ? "1 year anniversary" : "\(years) year anniversary")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Theme.textSecondary)
-                            } else {
-                                Text("until")
-                                    .font(.subheadline)
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(event.name)
+                                    .font(.title2.weight(.bold))
+                                    .lineLimit(2)
+                                Text(event.formattedDate)
+                                    .font(.footnote.weight(.medium))
                                     .foregroundStyle(Theme.textSecondary)
                             }
+
+                            Spacer(minLength: 0)
                         }
-                        .padding(.top, 4)
+
+                        StatBlock(
+                            primaryValue: daysUntil == 0 ? "TODAY" : "\(daysUntil)",
+                            primaryLabel: daysUntil == 0 ? "EVENT" : "DAYS LEFT",
+                            primaryColor: daysUntil == 0 || daysUntil <= 7 ? Theme.celebration : event.color,
+                            primaryIsCompact: daysUntil == 0,
+                            secondaryTitle: secondaryTitle,
+                            secondaryDetail: secondaryDetail,
+                            tinted: daysUntil == 0
+                        )
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -75,7 +73,7 @@ struct EventDetailView: View {
                 if !event.notes.isEmpty {
                     Section {
                         Text("Notes")
-                            .font(.system(.title3, design: .rounded).weight(.bold))
+                            .font(.system(.title3).weight(.bold))
                             .padding(.horizontal, 20)
                             .padding(.top, 8)
                             .padding(.bottom, 4)
