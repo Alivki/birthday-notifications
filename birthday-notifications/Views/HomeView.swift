@@ -1,3 +1,4 @@
+import ImageIO
 import SwiftData
 import SwiftUI
 
@@ -375,27 +376,78 @@ struct DaysBadge: View {
 
 // MARK: - Person Photo (reusable)
 
+/// Decoded thumbnails keyed by "<persistentID>-<dataCount>-<pixelSize>".
+/// Bounded so we don't hold every photo in memory for huge libraries.
+private enum PersonPhotoThumbnailCache {
+    static let cache: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 256
+        return c
+    }()
+
+    static func thumbnail(data: Data, maxPixelSize: CGFloat) -> UIImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
+        ]
+        guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        return UIImage(cgImage: cg)
+    }
+}
+
 struct PersonPhoto: View {
     let person: Person
     let size: CGFloat
 
+    @Environment(\.displayScale) private var displayScale
+    @State private var image: UIImage?
+
     var body: some View {
-        if let data = person.photoData, let uiImage = UIImage(data: data) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFill()
-                .frame(width: size, height: size)
-                .clipShape(Circle())
-        } else {
-            Circle()
-                .fill(.gray.opacity(0.15))
-                .frame(width: size, height: size)
-                .overlay(
-                    Text(person.firstName.prefix(1).uppercased())
-                        .font(.system(size: size * 0.38, weight: .medium))
-                        .foregroundStyle(.gray)
-                )
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+            } else {
+                Circle()
+                    .fill(.gray.opacity(0.15))
+                    .frame(width: size, height: size)
+                    .overlay(
+                        Text(person.firstName.prefix(1).uppercased())
+                            .font(.system(size: size * 0.38, weight: .medium))
+                            .foregroundStyle(.gray)
+                    )
+            }
         }
+        .task(id: person.persistentModelID) {
+            await loadThumbnail()
+        }
+    }
+
+    private func loadThumbnail() async {
+        guard let data = person.photoData else {
+            image = nil
+            return
+        }
+        let pixelSize = max(1, size * max(displayScale, 1))
+        let key = "\(person.persistentModelID.hashValue)-\(data.count)-\(Int(pixelSize))" as NSString
+        if let cached = PersonPhotoThumbnailCache.cache.object(forKey: key) {
+            image = cached
+            return
+        }
+        let decoded = await Task.detached(priority: .userInitiated) {
+            PersonPhotoThumbnailCache.thumbnail(data: data, maxPixelSize: pixelSize)
+        }.value
+        guard !Task.isCancelled else { return }
+        if let decoded {
+            PersonPhotoThumbnailCache.cache.setObject(decoded, forKey: key)
+        }
+        image = decoded
     }
 }
 

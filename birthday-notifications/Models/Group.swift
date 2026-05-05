@@ -66,8 +66,13 @@ struct ShadowStyle {
 }
 
 extension View {
+    /// `compositingGroup()` flattens the view tree into one layer first,
+    /// so the blur shadow rasterizes against the card silhouette instead of
+    /// every text glyph and image inside it. Without this the shadow blur
+    /// dominates scroll frames in long lists.
     func cardShadow() -> some View {
-        shadow(color: Theme.cardShadow.color, radius: Theme.cardShadow.radius, x: Theme.cardShadow.x, y: Theme.cardShadow.y)
+        compositingGroup()
+            .shadow(color: Theme.cardShadow.color, radius: Theme.cardShadow.radius, x: Theme.cardShadow.x, y: Theme.cardShadow.y)
     }
 }
 
